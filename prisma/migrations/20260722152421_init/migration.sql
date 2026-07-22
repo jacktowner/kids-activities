@@ -1,0 +1,25 @@
+-- CreateTable
+CREATE TABLE "Activity" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "category" TEXT NOT NULL,
+    "borough" TEXT NOT NULL,
+    "venue" TEXT NOT NULL,
+    "address" TEXT NOT NULL,
+    "lat" REAL NOT NULL,
+    "lng" REAL NOT NULL,
+    "ageMin" INTEGER NOT NULL,
+    "ageMax" INTEGER NOT NULL,
+    "isFree" BOOLEAN NOT NULL DEFAULT false,
+    "priceMin" REAL NOT NULL DEFAULT 0,
+    "priceMax" REAL NOT NULL DEFAULT 0,
+    "startDate" DATETIME NOT NULL,
+    "endDate" DATETIME NOT NULL,
+    "times" TEXT,
+    "sourceName" TEXT NOT NULL,
+    "sourceUrl" TEXT NOT NULL,
+    "imageUrl" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL
+);
