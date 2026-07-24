@@ -2,7 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { Activity } from "@/types/activity";
 import { formatDateRange, formatPrice } from "@/lib/format";
 
@@ -34,6 +34,9 @@ function FitBounds({ activities }: { activities: Activity[] }) {
 
   useEffect(() => {
     if (activities.length === 0) return;
+    // Container may be zero-sized here if the map is currently hidden (e.g. behind
+    // the mobile List/Map toggle) — MapVisibilityFix re-fits once it becomes visible.
+    if (map.getContainer().offsetWidth === 0) return;
     const bounds = L.latLngBounds(activities.map((a) => [a.lat, a.lng] as [number, number]));
     map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
   }, [activities, map]);
@@ -41,17 +44,87 @@ function FitBounds({ activities }: { activities: Activity[] }) {
   return null;
 }
 
+/**
+ * Leaflet caches the container size at init time. If the map mounts while hidden
+ * (display: none, as on the mobile List/Map toggle) that cache stays at (0, 0)
+ * even after the container becomes visible, which throws "invalid LatLng object:
+ * (NaN, NaN)" on any subsequent pan/zoom. Watch for the container gaining real
+ * size and invalidate + re-fit when it does.
+ */
+function MapVisibilityFix({
+  activities,
+  focusId,
+}: {
+  activities: Activity[];
+  focusId: string | null;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    let wasHidden = container.offsetWidth === 0 || container.offsetHeight === 0;
+
+    const observer = new ResizeObserver(() => {
+      const isHidden = container.offsetWidth === 0 || container.offsetHeight === 0;
+      if (!isHidden) {
+        map.invalidateSize();
+        // Skip the all-markers refit if a specific activity is focused —
+        // FlyToActive owns centering on that one instead.
+        if (wasHidden && !focusId && activities.length > 0) {
+          const bounds = L.latLngBounds(activities.map((a) => [a.lat, a.lng] as [number, number]));
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+        }
+      }
+      wasHidden = isHidden;
+    });
+
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [map, activities, focusId]);
+
+  return null;
+}
+
+function FlyToActive({
+  activities,
+  focusId,
+  markerRefs,
+}: {
+  activities: Activity[];
+  focusId: string | null;
+  markerRefs: React.MutableRefObject<Map<string, L.Marker>>;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!focusId) return;
+    const activity = activities.find((a) => a.id === focusId);
+    if (!activity) return;
+    // Guard against flying while the container is still zero-sized (see
+    // MapVisibilityFix) — invalidateSize is a no-op once it's already correct.
+    map.invalidateSize();
+    if (map.getContainer().offsetWidth === 0) return;
+    map.flyTo([activity.lat, activity.lng], Math.max(map.getZoom(), 14), { duration: 0.75 });
+    markerRefs.current.get(focusId)?.openPopup();
+  }, [focusId, activities, map, markerRefs]);
+
+  return null;
+}
+
 type Props = {
   activities: Activity[];
   activeId: string | null;
+  /** Set only on click (not hover) — pans/zooms the map to this activity. */
+  focusId: string | null;
   /** Called when a pin is clicked, to highlight it (does not change view). */
   onMarkerClick?: (id: string) => void;
   /** Called when the "View in list" link inside a popup is clicked. */
   onViewInList?: (id: string) => void;
 };
 
-export function ActivityMap({ activities, activeId, onMarkerClick, onViewInList }: Props) {
+export function ActivityMap({ activities, activeId, focusId, onMarkerClick, onViewInList }: Props) {
   const markers = useMemo(() => activities.filter((a) => a.lat && a.lng), [activities]);
+  const markerRefs = useRef(new Map<string, L.Marker>());
 
   return (
     <MapContainer
@@ -65,9 +138,15 @@ export function ActivityMap({ activities, activeId, onMarkerClick, onViewInList 
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <FitBounds activities={markers} />
+      <MapVisibilityFix activities={markers} focusId={focusId} />
+      <FlyToActive activities={markers} focusId={focusId} markerRefs={markerRefs} />
       {markers.map((activity) => (
         <Marker
           key={activity.id}
+          ref={(marker) => {
+            if (marker) markerRefs.current.set(activity.id, marker);
+            else markerRefs.current.delete(activity.id);
+          }}
           position={[activity.lat, activity.lng]}
           icon={activity.id === activeId ? activeIcon : defaultIcon}
           eventHandlers={{
@@ -95,13 +174,15 @@ export function ActivityMap({ activities, activeId, onMarkerClick, onViewInList 
                 🎂 Ages {activity.ageMin}–{activity.ageMax} · 📅{" "}
                 {formatDateRange(activity.startDate, activity.endDate)}
               </p>
-              <button
-                type="button"
-                onClick={() => onViewInList?.(activity.id)}
-                className="block w-full text-center mt-2 rounded-lg bg-teal-600 text-white text-sm font-medium py-1.5 hover:bg-teal-700 transition"
-              >
-                View in list →
-              </button>
+              {onViewInList && (
+                <button
+                  type="button"
+                  onClick={() => onViewInList(activity.id)}
+                  className="block w-full text-center mt-2 rounded-lg bg-teal-600 text-white text-sm font-medium py-1.5 hover:bg-teal-700 transition"
+                >
+                  View in list →
+                </button>
+              )}
             </div>
           </Popup>
         </Marker>

@@ -19,6 +19,7 @@ export type Activity = {
   sourceName: string;
   sourceUrl: string;
   imageUrl: string | null;
+  featured: boolean;
 };
 
 export type ActivityFilters = {

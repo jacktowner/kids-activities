@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
+import { ADMIN_COOKIE, isValidSessionCookie } from "@/lib/auth";
+import { toActivityData } from "@/lib/activity-input";
+
+function isAuthed(request: NextRequest) {
+  return isValidSessionCookie(request.cookies.get(ADMIN_COOKIE)?.value);
+}
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -48,8 +54,22 @@ export async function GET(request: NextRequest) {
 
   const activities = await prisma.activity.findMany({
     where,
-    orderBy: { startDate: "asc" },
+    orderBy: [{ featured: "desc" }, { startDate: "asc" }],
   });
 
   return NextResponse.json(activities);
+}
+
+export async function POST(request: NextRequest) {
+  if (!isAuthed(request)) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const body = await request.json().catch(() => null);
+  if (!body) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const activity = await prisma.activity.create({ data: toActivityData(body) });
+  return NextResponse.json(activity, { status: 201 });
 }

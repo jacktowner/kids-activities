@@ -33,6 +33,7 @@ model Activity {
   sourceName  String
   sourceUrl   String
   imageUrl    String?
+  featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }

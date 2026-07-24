@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ActivityCard } from "@/components/ActivityCard";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { CategoryNav } from "@/components/CategoryNav";
 import type { Activity, ActivityFilters } from "@/types/activity";
 
 const ActivityMap = dynamic(
@@ -13,7 +15,7 @@ const ActivityMap = dynamic(
 
 function MapPlaceholder() {
   return (
-    <div className="h-full w-full rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 text-sm">
+    <div className="h-full w-full rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-400 text-sm">
       Loading map…
     </div>
   );
@@ -22,8 +24,38 @@ function MapPlaceholder() {
 type Meta = {
   boroughs: string[];
   categories: string[];
+  categoryCounts: { category: string; count: number }[];
   maxPrice: number;
 };
+
+type SortKey = "name" | "date" | "price" | "subjects";
+type SortDir = "asc" | "desc";
+
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: "date", label: "Date" },
+  { key: "name", label: "Name" },
+  { key: "price", label: "Price" },
+  { key: "subjects", label: "Subjects" },
+];
+
+function sortActivities(activities: Activity[], sortKey: SortKey, sortDir: SortDir) {
+  const sorted = [...activities].sort((a, b) => {
+    switch (sortKey) {
+      case "name":
+        return a.title.localeCompare(b.title);
+      case "date":
+        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      case "price":
+        return (a.isFree ? 0 : a.priceMin) - (b.isFree ? 0 : b.priceMin);
+      case "subjects":
+        return a.category.localeCompare(b.category);
+    }
+  });
+  const withDir = sortDir === "desc" ? sorted.reverse() : sorted;
+  // Featured activities always lead the list, regardless of sort — sort is stable
+  // within each group so the chosen order still applies inside it.
+  return [...withDir.filter((a) => a.featured), ...withDir.filter((a) => !a.featured)];
+}
 
 function buildQuery(filters: ActivityFilters) {
   const params = new URLSearchParams();
@@ -45,13 +77,16 @@ export function ExplorePage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
   useEffect(() => {
     fetch("/api/meta")
       .then((res) => res.json())
       .then(setMeta)
-      .catch(() => setMeta({ boroughs: [], categories: [], maxPrice: 50 }));
+      .catch(() => setMeta({ boroughs: [], categories: [], categoryCounts: [], maxPrice: 50 }));
   }, []);
 
   useEffect(() => {
@@ -74,6 +109,22 @@ export function ExplorePage() {
     [activities, activeId]
   );
 
+  const sortedActivities = useMemo(
+    () => sortActivities(activities, sortKey, sortDir),
+    [activities, sortKey, sortDir]
+  );
+
+  function handleSelectFromList(id: string) {
+    setActiveId(id);
+    setFocusId(id);
+    setView("map");
+  }
+
+  function handleMarkerClick(id: string) {
+    setActiveId(id);
+    setFocusId(id);
+  }
+
   function handleSelectFromMap(id: string) {
     setActiveId(id);
     setView("list");
@@ -87,78 +138,120 @@ export function ExplorePage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex flex-col gap-6">
-      <header className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">
-          South London Kids Activities
-        </h1>
-        <p className="text-slate-600 text-sm sm:text-base">
-          Holiday clubs, camps and drop-in activities for ages 4–16, curated from council,
-          museum and local organiser listings across South London.
-        </p>
+      <header className="flex items-start justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
+            South London Kids Activities
+          </h1>
+          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+            Holiday clubs, camps and drop-in activities for ages 4–16, curated from council,
+            museum and local organiser listings across South London.
+          </p>
+        </div>
+        <ThemeToggle />
       </header>
 
-      <div className="lg:hidden flex rounded-lg border border-slate-200 overflow-hidden w-fit">
-        <button
-          onClick={() => setView("list")}
-          className={`px-4 py-2 text-sm font-medium ${
-            view === "list" ? "bg-teal-600 text-white" : "bg-white text-slate-600"
-          }`}
-        >
-          List
-        </button>
-        <button
-          onClick={() => setView("map")}
-          className={`px-4 py-2 text-sm font-medium ${
-            view === "map" ? "bg-teal-600 text-white" : "bg-white text-slate-600"
-          }`}
-        >
-          Map
-        </button>
-      </div>
+      <CategoryNav
+        categories={meta?.categoryCounts ?? []}
+        selected={filters.category}
+        onSelect={(category) => setFilters({ ...filters, category })}
+      />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_1fr] gap-6 flex-1 min-h-0">
-        <div className="lg:col-span-1">
-          <FilterPanel
-            filters={filters}
-            onChange={setFilters}
-            meta={meta}
-            resultCount={activities.length}
-          />
+      <FilterPanel
+        filters={filters}
+        onChange={setFilters}
+        meta={meta}
+        resultCount={activities.length}
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="lg:hidden flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-fit">
+          <button
+            onClick={() => setView("list")}
+            className={`px-4 py-2 text-sm font-medium ${
+              view === "list"
+                ? "bg-teal-600 text-white"
+                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+            }`}
+          >
+            List
+          </button>
+          <button
+            onClick={() => setView("map")}
+            className={`px-4 py-2 text-sm font-medium ${
+              view === "map"
+                ? "bg-teal-600 text-white"
+                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+            }`}
+          >
+            Map
+          </button>
         </div>
 
+        <div className="flex items-center gap-1.5 text-sm">
+          <label htmlFor="sort-by" className="text-slate-500 dark:text-slate-400">
+            Sort by
+          </label>
+          <select
+            id="sort-by"
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1"
+          >
+            {SORT_OPTIONS.map((opt) => (
+              <option key={opt.key} value={opt.key}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            aria-label={sortDir === "asc" ? "Sort ascending" : "Sort descending"}
+            title={sortDir === "asc" ? "Ascending" : "Descending"}
+            className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-teal-700 dark:hover:text-teal-400 px-2 py-1"
+          >
+            {sortDir === "asc" ? "▲" : "▼"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 flex-1 min-h-0">
         <div
-          className={`lg:col-span-1 space-y-3 overflow-y-auto max-h-[70vh] lg:max-h-[calc(100vh-220px)] pr-1 ${
+          className={`space-y-3 overflow-y-auto max-h-[70vh] lg:max-h-[calc(100vh-220px)] pr-1 ${
             view === "map" ? "hidden lg:block" : ""
           }`}
         >
           {loading && (
             <p className="text-sm text-slate-400 py-8 text-center">Loading activities…</p>
           )}
-          {!loading && activities.length === 0 && (
+          {!loading && sortedActivities.length === 0 && (
             <p className="text-sm text-slate-400 py-8 text-center">
               No activities match your filters. Try widening your search.
             </p>
           )}
-          {activities.map((activity) => (
+          {sortedActivities.map((activity) => (
             <ActivityCard
               key={activity.id}
               activity={activity}
               isActive={activity.id === activeId}
               onHover={setActiveId}
-              onSelect={(id) => setActiveId(id)}
+              onSelect={handleSelectFromList}
+              onCategoryClick={(category) => setFilters({ ...filters, category })}
             />
           ))}
         </div>
 
         <div
-          className={`lg:col-span-1 h-[70vh] lg:h-auto lg:max-h-[calc(100vh-220px)] ${
+          className={`h-[70vh] lg:h-auto lg:max-h-[calc(100vh-220px)] ${
             view === "list" ? "hidden lg:block" : ""
           }`}
         >
           <ActivityMap
-            activities={activities}
+            activities={sortedActivities}
             activeId={activeActivity?.id ?? null}
-            onMarkerClick={setActiveId}
+            focusId={focusId}
+            onMarkerClick={handleMarkerClick}
             onViewInList={handleSelectFromMap}
           />
         </div>

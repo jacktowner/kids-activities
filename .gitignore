@@ -45,5 +45,8 @@ next-env.d.ts
 # database (reproducible via `npm run db:seed`)
 /dev.db
 
+# admin-uploaded activity images
+/public/uploads
+
 # local-only Claude Code settings
 .claude/settings.local.json
