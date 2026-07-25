@@ -24,7 +24,7 @@ export type Activity = {
 
 export type ActivityFilters = {
   q?: string;
-  borough?: string;
+  borough?: string[];
   category?: string;
   age?: number;
   freeOnly?: boolean;

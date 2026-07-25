@@ -20,7 +20,12 @@
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
+  background-image: url("/illustrations/kids-playing.svg");
+  background-repeat: no-repeat;
+  background-position: bottom -20px right -40px;
+  background-size: min(480px, 60vw) auto;
+  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }

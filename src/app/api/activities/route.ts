@@ -12,7 +12,11 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
 
   const q = params.get("q")?.trim();
-  const borough = params.get("borough")?.trim();
+  const boroughs = params
+    .get("borough")
+    ?.split(",")
+    .map((b) => b.trim())
+    .filter(Boolean);
   const category = params.get("category")?.trim();
   const age = params.get("age") ? Number(params.get("age")) : undefined;
   const freeOnly = params.get("freeOnly") === "true";
@@ -30,7 +34,7 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  if (borough) where.borough = borough;
+  if (boroughs && boroughs.length > 0) where.borough = { in: boroughs };
   if (category) where.category = category;
 
   if (typeof age === "number" && !Number.isNaN(age)) {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ActivityCard } from "@/components/ActivityCard";
@@ -57,10 +57,100 @@ function sortActivities(activities: Activity[], sortKey: SortKey, sortDir: SortD
   return [...withDir.filter((a) => a.featured), ...withDir.filter((a) => !a.featured)];
 }
 
+const PAGE_SIZE = 12;
+
+type ActivityListPanelProps = {
+  activities: Activity[];
+  loading: boolean;
+  activeId: string | null;
+  hidden: boolean;
+  compact: boolean;
+  onHover: (id: string | null) => void;
+  onSelect: (id: string) => void;
+  onCategoryClick: (category: string) => void;
+};
+
+// Keyed by the caller on the current filter/sort signature, so a fresh instance
+// (and a fresh PAGE_SIZE) mounts whenever the underlying list criteria change,
+// instead of needing an effect to reset paging state.
+function ActivityListPanel({
+  activities,
+  loading,
+  activeId,
+  hidden,
+  compact,
+  onHover,
+  onSelect,
+  onCategoryClick,
+}: ActivityListPanelProps) {
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const listRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const visibleActivities = useMemo(
+    () => activities.slice(0, visibleCount),
+    [activities, visibleCount]
+  );
+
+  // Grows the visible slice of the (already-fetched) list as the user scrolls
+  // near the bottom of the list panel, rather than paging the API.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    const root = listRef.current;
+    if (!sentinel || !root) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, activities.length));
+        }
+      },
+      { root, rootMargin: "200px" }
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [activities.length]);
+
+  return (
+    <div
+      ref={listRef}
+      className={`space-y-3 overflow-y-auto max-h-[70vh] lg:max-h-[calc(100vh-220px)] pr-1 ${
+        hidden ? "hidden lg:block" : ""
+      }`}
+    >
+      {loading && <p className="text-sm text-slate-400 py-8 text-center">Loading activities…</p>}
+      {!loading && activities.length === 0 && (
+        <p className="text-sm text-slate-400 py-8 text-center">
+          No activities match your filters. Try widening your search.
+        </p>
+      )}
+      {visibleActivities.map((activity) => (
+        <ActivityCard
+          key={activity.id}
+          activity={activity}
+          isActive={activity.id === activeId}
+          compact={compact}
+          onHover={onHover}
+          onSelect={onSelect}
+          onCategoryClick={onCategoryClick}
+        />
+      ))}
+      {visibleActivities.length < activities.length && (
+        <>
+          <div ref={sentinelRef} className="h-1" />
+          <p className="text-xs text-slate-400 text-center py-2">
+            Showing {visibleActivities.length} of {activities.length} — scroll for more
+          </p>
+        </>
+      )}
+    </div>
+  );
+}
+
 function buildQuery(filters: ActivityFilters) {
   const params = new URLSearchParams();
   if (filters.q) params.set("q", filters.q);
-  if (filters.borough) params.set("borough", filters.borough);
+  if (filters.borough && filters.borough.length > 0) params.set("borough", filters.borough.join(","));
   if (filters.category) params.set("category", filters.category);
   if (filters.age !== undefined) params.set("age", String(filters.age));
   if (filters.freeOnly) params.set("freeOnly", "true");
@@ -81,6 +171,7 @@ export function ExplorePage() {
   const [view, setView] = useState<"list" | "map">("list");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [density, setDensity] = useState<"compact" | "expanded">("expanded");
 
   useEffect(() => {
     fetch("/api/meta")
@@ -165,27 +256,56 @@ export function ExplorePage() {
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="lg:hidden flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-fit">
-          <button
-            onClick={() => setView("list")}
-            className={`px-4 py-2 text-sm font-medium ${
-              view === "list"
-                ? "bg-teal-600 text-white"
-                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-            }`}
-          >
-            List
-          </button>
-          <button
-            onClick={() => setView("map")}
-            className={`px-4 py-2 text-sm font-medium ${
-              view === "map"
-                ? "bg-teal-600 text-white"
-                : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
-            }`}
-          >
-            Map
-          </button>
+        <div className="lg:hidden flex items-center gap-2">
+          <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-fit">
+            <button
+              onClick={() => setView("list")}
+              className={`px-4 py-2 text-sm font-medium ${
+                view === "list"
+                  ? "bg-teal-600 text-white"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              List
+            </button>
+            <button
+              onClick={() => setView("map")}
+              className={`px-4 py-2 text-sm font-medium ${
+                view === "map"
+                  ? "bg-teal-600 text-white"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              Map
+            </button>
+          </div>
+
+          <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-fit">
+            <button
+              onClick={() => setDensity("compact")}
+              aria-label="Compact view"
+              title="Compact view"
+              className={`px-3 py-2 text-sm font-medium ${
+                density === "compact"
+                  ? "bg-teal-600 text-white"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              ☰
+            </button>
+            <button
+              onClick={() => setDensity("expanded")}
+              aria-label="Expanded view"
+              title="Expanded view"
+              className={`px-3 py-2 text-sm font-medium ${
+                density === "expanded"
+                  ? "bg-teal-600 text-white"
+                  : "bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+              }`}
+            >
+              ▤
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-1.5 text-sm">
@@ -217,30 +337,17 @@ export function ExplorePage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 flex-1 min-h-0">
-        <div
-          className={`space-y-3 overflow-y-auto max-h-[70vh] lg:max-h-[calc(100vh-220px)] pr-1 ${
-            view === "map" ? "hidden lg:block" : ""
-          }`}
-        >
-          {loading && (
-            <p className="text-sm text-slate-400 py-8 text-center">Loading activities…</p>
-          )}
-          {!loading && sortedActivities.length === 0 && (
-            <p className="text-sm text-slate-400 py-8 text-center">
-              No activities match your filters. Try widening your search.
-            </p>
-          )}
-          {sortedActivities.map((activity) => (
-            <ActivityCard
-              key={activity.id}
-              activity={activity}
-              isActive={activity.id === activeId}
-              onHover={setActiveId}
-              onSelect={handleSelectFromList}
-              onCategoryClick={(category) => setFilters({ ...filters, category })}
-            />
-          ))}
-        </div>
+        <ActivityListPanel
+          key={`${buildQuery(filters)}|${sortKey}|${sortDir}`}
+          activities={sortedActivities}
+          loading={loading}
+          activeId={activeId}
+          hidden={view === "map"}
+          compact={density === "compact"}
+          onHover={setActiveId}
+          onSelect={handleSelectFromList}
+          onCategoryClick={(category) => setFilters({ ...filters, category })}
+        />
 
         <div
           className={`h-[70vh] lg:h-auto lg:max-h-[calc(100vh-220px)] ${

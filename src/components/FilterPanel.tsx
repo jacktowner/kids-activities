@@ -96,18 +96,49 @@ export function FilterPanel({ filters, onChange, meta, resultCount }: Props) {
           <label className="flex items-center gap-1 text-sm font-semibold text-teal-800 dark:text-teal-300 mb-1">
             📍 Where
           </label>
-          <select
-            value={filters.borough ?? ""}
-            onChange={(e) => set("borough", e.target.value || undefined)}
-            className="w-full rounded-lg border border-teal-400 dark:border-teal-600 dark:bg-slate-900 dark:text-slate-100 px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500"
-          >
-            <option value="">All boroughs</option>
-            {meta?.boroughs.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
+          <details className="group relative">
+            <summary className="w-full list-none cursor-pointer rounded-lg border border-teal-400 dark:border-teal-600 dark:bg-slate-900 dark:text-slate-100 px-2 py-1 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-teal-500 flex items-center justify-between">
+              <span>
+                {!filters.borough || filters.borough.length === 0
+                  ? "All boroughs"
+                  : filters.borough.length === 1
+                    ? filters.borough[0]
+                    : `${filters.borough.length} boroughs selected`}
+              </span>
+              <span className="text-xs transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-teal-400 dark:border-teal-600 bg-white dark:bg-slate-900 shadow-lg p-2 space-y-0.5">
+              {meta?.boroughs.map((b) => (
+                <label
+                  key={b}
+                  className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-200 px-1 py-0.5 rounded hover:bg-teal-50 dark:hover:bg-teal-900/40 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={filters.borough?.includes(b) ?? false}
+                    onChange={(e) => {
+                      const current = filters.borough ?? [];
+                      const next = e.target.checked
+                        ? [...current, b]
+                        : current.filter((x) => x !== b);
+                      set("borough", next.length > 0 ? next : undefined);
+                    }}
+                    className="accent-teal-600 h-4 w-4"
+                  />
+                  {b}
+                </label>
+              ))}
+              {filters.borough && filters.borough.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => set("borough", undefined)}
+                  className="w-full text-left text-xs text-teal-700 dark:text-teal-400 hover:underline pt-1"
+                >
+                  Clear boroughs
+                </button>
+              )}
+            </div>
+          </details>
         </div>
       </div>
 
