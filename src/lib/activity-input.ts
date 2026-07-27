@@ -1,10 +1,11 @@
 import type { Prisma } from "@/generated/prisma/client";
+import { normalizeCategories, formatCategories } from "@/lib/category";
 
 export function toActivityData(body: Record<string, unknown>): Prisma.ActivityCreateInput {
   return {
     title: String(body.title ?? "").trim(),
     description: String(body.description ?? "").trim(),
-    category: String(body.category ?? "").trim(),
+    category: formatCategories(normalizeCategories(body.category)),
     borough: String(body.borough ?? "").trim(),
     venue: String(body.venue ?? "").trim(),
     address: String(body.address ?? "").trim(),

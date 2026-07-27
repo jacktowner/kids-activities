@@ -1,9 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import type { Activity } from "@/types/activity";
+import { parseCategories } from "@/lib/category";
+
+type Meta = { boroughs: string[]; categories: string[] };
 
 type Props = {
   activity?: Activity;
@@ -59,7 +62,7 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
   const [values, setValues] = useState({
     title: activity?.title ?? "",
     description: activity?.description ?? "",
-    category: activity?.category ?? "",
+    category: activity ? parseCategories(activity.category) : [],
     borough: activity?.borough ?? "",
     venue: activity?.venue ?? "",
     address: activity?.address ?? "",
@@ -86,7 +89,21 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
     message: string;
   }>({ status: "idle", message: "" });
   const [showManualCoords, setShowManualCoords] = useState(false);
+  const [meta, setMeta] = useState<Meta | null>(null);
   const coordsKnown = values.lat !== "" && values.lng !== "";
+
+  useEffect(() => {
+    fetch("/api/meta")
+      .then((res) => res.json())
+      .then(setMeta)
+      .catch(() => setMeta({ boroughs: [], categories: [] }));
+  }, []);
+
+  const categoryOptions = Array.from(new Set([...(meta?.categories ?? []), ...values.category]));
+  const boroughOptions =
+    values.borough && !(meta?.boroughs ?? []).includes(values.borough)
+      ? [...(meta?.boroughs ?? []), values.borough]
+      : (meta?.boroughs ?? []);
 
   function set<K extends keyof typeof values>(key: K, value: (typeof values)[K]) {
     setValues((v) => ({ ...v, [key]: value }));
@@ -142,6 +159,10 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
       setError("Find or enter a location before saving.");
       return;
     }
+    if (values.category.length === 0) {
+      setError("Select at least one category.");
+      return;
+    }
     setSaving(true);
     setError(null);
 
@@ -183,12 +204,44 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
           />
         </Field>
         <Field label="Category" required>
-          <input
-            required
-            value={values.category}
-            onChange={(e) => set("category", e.target.value)}
-            className={inputClass}
-          />
+          <details className="group relative">
+            <summary
+              className={`${inputClass} list-none cursor-pointer flex items-center justify-between gap-2`}
+            >
+              <span>
+                {values.category.length === 0
+                  ? "Select categories"
+                  : values.category.length === 1
+                    ? values.category[0]
+                    : `${values.category.length} categories selected`}
+              </span>
+              <span className="text-xs transition-transform group-open:rotate-180">▾</span>
+            </summary>
+            <div className="absolute z-10 mt-1 w-full max-h-56 overflow-y-auto rounded-lg border border-slate-300 bg-white shadow-lg p-2 space-y-0.5">
+              {categoryOptions.length === 0 && (
+                <p className="text-xs text-slate-400 px-1 py-0.5">Loading categories…</p>
+              )}
+              {categoryOptions.map((c) => (
+                <label
+                  key={c}
+                  className="flex items-center gap-2 text-sm text-slate-700 px-1 py-0.5 rounded hover:bg-slate-50 cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={values.category.includes(c)}
+                    onChange={(e) => {
+                      const next = e.target.checked
+                        ? [...values.category, c]
+                        : values.category.filter((x) => x !== c);
+                      set("category", next);
+                    }}
+                    className="accent-teal-600 h-4 w-4"
+                  />
+                  {c}
+                </label>
+              ))}
+            </div>
+          </details>
         </Field>
       </div>
 
@@ -212,12 +265,21 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
           />
         </Field>
         <Field label="Borough" required>
-          <input
+          <select
             required
             value={values.borough}
             onChange={(e) => set("borough", e.target.value)}
             className={inputClass}
-          />
+          >
+            <option value="" disabled>
+              Select a borough
+            </option>
+            {boroughOptions.map((b) => (
+              <option key={b} value={b}>
+                {b}
+              </option>
+            ))}
+          </select>
         </Field>
       </div>
 

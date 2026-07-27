@@ -2,6 +2,7 @@ import { useState } from "react";
 import Link from "next/link";
 import type { Activity } from "@/types/activity";
 import { formatDateRange, formatPrice } from "@/lib/format";
+import { parseCategories } from "@/lib/category";
 
 type Props = {
   activity: Activity;
@@ -143,16 +144,21 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
       </div>
 
       {!compact && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.stopPropagation();
-            onCategoryClick?.(activity.category);
-          }}
-          className="mt-1.5 text-[10px] uppercase tracking-wide px-1 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-teal-100 dark:hover:bg-teal-800 hover:text-teal-700 dark:hover:text-teal-200 transition"
-        >
-          {activity.category}
-        </button>
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {parseCategories(activity.category).map((category) => (
+            <button
+              key={category}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCategoryClick?.(category);
+              }}
+              className="text-[10px] uppercase tracking-wide px-1 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-teal-100 dark:hover:bg-teal-800 hover:text-teal-700 dark:hover:text-teal-200 transition"
+            >
+              {category}
+            </button>
+          ))}
+        </div>
       )}
 
       {!compact && (

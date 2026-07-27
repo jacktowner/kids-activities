@@ -6,6 +6,7 @@ import { formatDateRange, formatPrice } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ActivityDetailMap } from "@/components/ActivityDetailMap";
 import type { Activity } from "@/types/activity";
+import { parseCategories } from "@/lib/category";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -80,9 +81,16 @@ export default async function ActivityDetailPage({ params }: Props) {
             </div>
           </div>
 
-          <span className="inline-block text-[10px] uppercase tracking-wide px-1 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400">
-            {activity.category}
-          </span>
+          <div className="flex flex-wrap gap-1">
+            {parseCategories(activity.category).map((category) => (
+              <span
+                key={category}
+                className="inline-block text-[10px] uppercase tracking-wide px-1 py-0.5 rounded-sm bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
+              >
+                {category}
+              </span>
+            ))}
+          </div>
 
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             {activity.description}

@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 import { toActivityData } from "@/lib/activity-input";
 import { resolveActor } from "@/lib/request-actor";
+import { parseCategories } from "@/lib/category";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
   }
 
   if (boroughs && boroughs.length > 0) where.borough = { in: boroughs };
-  if (category) where.category = category;
+  if (category) where.category = { contains: category };
 
   if (typeof age === "number" && !Number.isNaN(age)) {
     where.ageMin = { lte: age };
@@ -52,10 +53,14 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  const activities = await prisma.activity.findMany({
+  const rows = await prisma.activity.findMany({
     where,
     orderBy: [{ featured: "desc" }, { startDate: "asc" }],
   });
+
+  const activities = category
+    ? rows.filter((a) => parseCategories(a.category).includes(category))
+    : rows;
 
   return NextResponse.json(activities);
 }
