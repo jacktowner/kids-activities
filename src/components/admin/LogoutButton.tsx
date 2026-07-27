@@ -2,12 +2,17 @@
 
 import { useRouter } from "next/navigation";
 
-export function LogoutButton() {
+type Props = {
+  endpoint?: string;
+  redirectTo?: string;
+};
+
+export function LogoutButton({ endpoint = "/api/admin/logout", redirectTo = "/admin/login" }: Props) {
   const router = useRouter();
 
   async function handleLogout() {
-    await fetch("/api/admin/logout", { method: "POST" });
-    router.push("/admin/login");
+    await fetch(endpoint, { method: "POST" });
+    router.push(redirectTo);
     router.refresh();
   }
 

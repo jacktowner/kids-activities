@@ -7,6 +7,8 @@ import type { Activity } from "@/types/activity";
 
 type Props = {
   activity?: Activity;
+  hideFeatured?: boolean;
+  redirectTo?: string;
 };
 
 function toDateInput(value: string) {
@@ -52,7 +54,7 @@ function Field({
   );
 }
 
-export function ActivityForm({ activity }: Props) {
+export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/admin" }: Props) {
   const router = useRouter();
   const [values, setValues] = useState({
     title: activity?.title ?? "",
@@ -151,6 +153,7 @@ export function ActivityForm({ activity }: Props) {
       ageMin: Number(values.ageMin),
       ageMax: Number(values.ageMax),
       ...(values.isFree ? { priceMin: 0, priceMax: 0 } : parsePriceInput(price)),
+      ...(hideFeatured ? { featured: false } : {}),
     };
 
     const res = await fetch(activity ? `/api/activities/${activity.id}` : "/api/activities", {
@@ -164,7 +167,7 @@ export function ActivityForm({ activity }: Props) {
       setError("Failed to save activity.");
       return;
     }
-    router.push("/admin");
+    router.push(redirectTo);
     router.refresh();
   }
 
@@ -346,14 +349,16 @@ export function ActivityForm({ activity }: Props) {
           />
           Free activity
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={values.featured}
-            onChange={(e) => set("featured", e.target.checked)}
-          />
-          ★ Featured (shows at the top of the list)
-        </label>
+        {!hideFeatured && (
+          <label className="flex items-center gap-2 text-sm text-slate-700">
+            <input
+              type="checkbox"
+              checked={values.featured}
+              onChange={(e) => set("featured", e.target.checked)}
+            />
+            ★ Featured (shows at the top of the list)
+          </label>
+        )}
       </div>
 
       {!values.isFree && (
@@ -434,7 +439,7 @@ export function ActivityForm({ activity }: Props) {
         </button>
         <button
           type="button"
-          onClick={() => router.push("/admin")}
+          onClick={() => router.push(redirectTo)}
           className="rounded-lg border border-slate-300 text-slate-700 text-sm font-medium px-5 py-2 hover:bg-slate-50 transition"
         >
           Cancel

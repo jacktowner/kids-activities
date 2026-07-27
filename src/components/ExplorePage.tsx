@@ -6,6 +6,7 @@ import { FilterPanel } from "@/components/FilterPanel";
 import { ActivityCard } from "@/components/ActivityCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { CategoryNav } from "@/components/CategoryNav";
+import { AccountNav } from "@/components/AccountNav";
 import type { Activity, ActivityFilters } from "@/types/activity";
 
 const ActivityMap = dynamic(
@@ -161,7 +162,7 @@ function buildQuery(filters: ActivityFilters) {
   return params.toString();
 }
 
-export function ExplorePage() {
+export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [meta, setMeta] = useState<Meta | null>(null);
   const [filters, setFilters] = useState<ActivityFilters>({});
   const [activities, setActivities] = useState<Activity[]>([]);
@@ -230,7 +231,7 @@ export function ExplorePage() {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex flex-col gap-6">
       <header className="flex items-start justify-between gap-4">
-        <div className="space-y-1">
+        <div className="space-y-1 flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
             South London Kids Activities
           </h1>
@@ -239,7 +240,10 @@ export function ExplorePage() {
             museum and local organiser listings across South London.
           </p>
         </div>
-        <ThemeToggle />
+        <div className="flex items-center gap-3 shrink-0">
+          <AccountNav isLoggedIn={isLoggedIn} />
+          <ThemeToggle />
+        </div>
       </header>
 
       <CategoryNav

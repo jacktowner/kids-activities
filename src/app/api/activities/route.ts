@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
-import { ADMIN_COOKIE, isValidSessionCookie } from "@/lib/auth";
 import { toActivityData } from "@/lib/activity-input";
-
-function isAuthed(request: NextRequest) {
-  return isValidSessionCookie(request.cookies.get(ADMIN_COOKIE)?.value);
-}
+import { resolveActor } from "@/lib/request-actor";
 
 export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
@@ -65,7 +61,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthed(request)) {
+  const actor = await resolveActor(request);
+  if (actor.kind === "none") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -74,6 +71,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const activity = await prisma.activity.create({ data: toActivityData(body) });
+  const data = toActivityData(body);
+  if (actor.kind === "user") {
+    data.featured = false;
+    data.owner = { connect: { id: actor.id } };
+  }
+
+  const activity = await prisma.activity.create({ data });
   return NextResponse.json(activity, { status: 201 });
 }

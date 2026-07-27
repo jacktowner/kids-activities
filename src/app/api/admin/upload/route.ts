@@ -3,7 +3,7 @@ import type { NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { mkdir, writeFile } from "fs/promises";
 import path from "path";
-import { ADMIN_COOKIE, isValidSessionCookie } from "@/lib/auth";
+import { resolveActor } from "@/lib/request-actor";
 
 const MAX_SIZE = 1 * 1024 * 1024;
 const ALLOWED_TYPES: Record<string, string> = {
@@ -12,7 +12,8 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 export async function POST(request: NextRequest) {
-  if (!isValidSessionCookie(request.cookies.get(ADMIN_COOKIE)?.value)) {
+  const actor = await resolveActor(request);
+  if (actor.kind === "none") {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

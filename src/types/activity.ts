@@ -20,6 +20,7 @@ export type Activity = {
   sourceUrl: string;
   imageUrl: string | null;
   featured: boolean;
+  ownerId: string | null;
 };
 
 export type ActivityFilters = {

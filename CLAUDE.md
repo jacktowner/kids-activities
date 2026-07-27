@@ -46,10 +46,39 @@ console for managing listings (create/edit/delete, mark as featured).
 
 ## Data model (`prisma/schema.prisma`)
 
-Single `Activity` model: `title`, `description`, `category`, `borough`, `venue`,
+`Activity` model: `title`, `description`, `category`, `borough`, `venue`,
 `address`, `lat`/`lng`, `ageMin`/`ageMax`, `isFree`, `priceMin`/`priceMax`, `startDate`/
 `endDate`, `times`, `sourceName`/`sourceUrl` (link to the original listing), `imageUrl`,
-`featured` (boolean — pins the activity to the top of listings regardless of sort order).
+`featured` (boolean — pins the activity to the top of listings regardless of sort order),
+`ownerId` (nullable — `null` for admin-created rows, set for user-submitted listings).
+`User` (email/passwordHash/passwordSalt, scrypt-hashed) and `Session` (opaque random
+token = the cookie value, DB-backed so logout actually revokes it) support regular-user
+accounts.
+
+## Two parallel auth systems — do not conflate them
+
+- **Admin** (`src/lib/auth.ts`): one shared password (`ADMIN_PASSWORD` env var), cookie
+  `admin_session` = a *deterministic* sha256 of that password (same value every login, no
+  DB row, can't be revoked short of changing the password). Gates `/admin/*`.
+- **Regular users** (`src/lib/user-auth.ts`): real per-user accounts, scrypt password
+  hashing, cookie `user_session` = a random per-login token stored in the `Session` table
+  (revocable — logout deletes the row). Gates `/account/*`.
+- `src/lib/request-actor.ts`'s `resolveActor(request)` is the single place that resolves
+  "who is making this request" (`admin` / `user` / `none`) — every mutating API route
+  (`/api/activities*`, `/api/geocode`, `/api/admin/upload`) uses this instead of checking
+  either cookie directly. Admin wins if both cookies happen to be valid. Regular users can
+  only PATCH/DELETE activities where `ownerId` matches their own id (enforced in the
+  Prisma `where` clause, not a separate read-then-check); admins bypass that check
+  entirely. "Featured" is admin-only — forced to `false` server-side for non-admin writes
+  regardless of what the client sends.
+- `src/proxy.ts` gates both `/admin/:path*` and `/account/:path*`, but the `/account`
+  branch only checks *cookie presence* (no DB call) — real validation happens in each
+  page/route via `getSessionUser`. This is deliberate: the admin check is a pure
+  no-I/O comparison, safe wherever `proxy.ts` runs, but the user-session check is
+  DB-backed (Prisma), which may not be safe to call from the same place. Treat the proxy's
+  `/account` gate as a UX nicety, not the security boundary.
+- `src/components/admin/ActivityForm.tsx` is shared by both consoles via `hideFeatured`
+  and `redirectTo` props — `/account/*` pages pass `hideFeatured redirectTo="/account"`.
 
 ## Key files
 
@@ -77,6 +106,9 @@ Single `Activity` model: `title`, `description`, `category`, `borough`, `venue`,
 - `public/illustrations/kids-playing.svg` — unDraw "Children" illustration, recolored to
   the site's teal accent and given a low opacity, used as a fixed background image
   (wired in `src/app/globals.css`).
+- `src/app/account/*` — password-gated-per-user console (signup/login/dashboard/new/edit)
+  so regular visitors can submit and manage their own listings; publishes immediately, no
+  admin approval queue. See "Two parallel auth systems" above.
 
 # Session management
 
