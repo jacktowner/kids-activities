@@ -115,8 +115,12 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
       return;
     }
     setGeocodeState({ status: "loading", message: "" });
-    const query = [values.address, values.venue, values.borough, "London"].filter(Boolean).join(", ");
-    const res = await fetch(`/api/geocode?q=${encodeURIComponent(query)}`);
+    const params = new URLSearchParams({
+      address: values.address,
+      venue: values.venue,
+      borough: values.borough,
+    });
+    const res = await fetch(`/api/geocode?${params.toString()}`);
     const data = await res.json();
 
     if (!res.ok) {
