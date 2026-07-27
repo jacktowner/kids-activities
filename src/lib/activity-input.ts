@@ -19,8 +19,8 @@ export function toActivityData(body: Record<string, unknown>): Prisma.ActivityCr
     startDate: new Date(String(body.startDate)),
     endDate: new Date(String(body.endDate)),
     times: body.times ? String(body.times) : null,
-    sourceName: String(body.sourceName ?? "").trim(),
-    sourceUrl: String(body.sourceUrl ?? "").trim(),
+    sourceName: body.sourceName ? String(body.sourceName).trim() : null,
+    sourceUrl: body.sourceUrl ? String(body.sourceUrl).trim() : null,
     imageUrl: body.imageUrl ? String(body.imageUrl) : null,
     featured: Boolean(body.featured),
   };

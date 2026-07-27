@@ -30,8 +30,8 @@ model Activity {
   startDate   DateTime
   endDate     DateTime
   times       String?
-  sourceName  String
-  sourceUrl   String
+  sourceName  String?
+  sourceUrl   String?
   imageUrl    String?
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())

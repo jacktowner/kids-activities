@@ -435,17 +435,15 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Field label="Source name" required>
+        <Field label="Source name (optional)">
           <input
-            required
             value={values.sourceName}
             onChange={(e) => set("sourceName", e.target.value)}
             className={inputClass}
           />
         </Field>
-        <Field label="Source URL" required>
+        <Field label="Source URL (optional)">
           <input
-            required
             type="url"
             value={values.sourceUrl}
             onChange={(e) => set("sourceUrl", e.target.value)}

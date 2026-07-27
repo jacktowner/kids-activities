@@ -16,8 +16,8 @@ export type Activity = {
   startDate: string;
   endDate: string;
   times: string | null;
-  sourceName: string;
-  sourceUrl: string;
+  sourceName: string | null;
+  sourceUrl: string | null;
   imageUrl: string | null;
   featured: boolean;
   ownerId: string | null;

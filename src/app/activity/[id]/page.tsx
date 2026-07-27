@@ -107,14 +107,16 @@ export default async function ActivityDetailPage({ params }: Props) {
             {activity.times && <p>🕒 {activity.times}</p>}
           </div>
 
-          <a
-            href={activity.sourceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block rounded-lg bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition"
-          >
-            Visit {activity.sourceName} →
-          </a>
+          {activity.sourceUrl && (
+            <a
+              href={activity.sourceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-block rounded-lg bg-teal-600 text-white text-sm font-medium px-4 py-2 hover:bg-teal-700 transition"
+            >
+              Visit {activity.sourceName || "source"} →
+            </a>
+          )}
         </div>
 
         <div className="h-[320px] lg:h-auto lg:min-h-[400px]">

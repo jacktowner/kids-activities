@@ -37,10 +37,11 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
 
   async function handleShare(e: React.MouseEvent) {
     e.stopPropagation();
+    const shareUrl = activity.sourceUrl || `${window.location.origin}/activity/${activity.id}`;
     const shareData = {
       title: activity.title,
       text: `${activity.title} — ${activity.venue}, ${activity.borough}`,
-      url: activity.sourceUrl,
+      url: shareUrl,
     };
     // navigator.share / navigator.clipboard only exist in secure contexts
     // (https, or localhost) — fall back to execCommand for plain http (e.g.
@@ -55,7 +56,7 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
     }
     if (navigator.clipboard?.writeText) {
       try {
-        await navigator.clipboard.writeText(activity.sourceUrl);
+        await navigator.clipboard.writeText(shareUrl);
         setCopied(true);
         setTimeout(() => setCopied(false), 1500);
         return;
@@ -63,7 +64,7 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
         // fall through to legacy fallback
       }
     }
-    copyWithFallback(activity.sourceUrl);
+    copyWithFallback(shareUrl);
   }
 
   return (
