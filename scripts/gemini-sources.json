@@ -118,5 +118,40 @@
     "name": "Orleans House Gallery",
     "url": "https://www.orleanshousegallery.org/whats-on/",
     "addedAt": "2026-08-04"
+  },
+  {
+    "name": "RAF Museum London",
+    "url": "https://www.rafmuseum.org.uk/london/things-to-see-and-do/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Barnet Council Libraries",
+    "url": "https://www.barnet.gov.uk/libraries",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Junior Adventures Group (Harrow Leisure Centre)",
+    "url": "https://www.junioradventuresgroup.co.uk/find-us/harrow-leisure-centre/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Headstone Manor & Museum",
+    "url": "https://headstonemanor.org/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Haringey Council Libraries",
+    "url": "https://haringey.gov.uk/libraries",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Walthamstow Wetlands",
+    "url": "https://walthamstowwetlands.com/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Little Angel Theatre",
+    "url": "https://www.littleangeltheatre.com/whats-on/",
+    "addedAt": "2026-08-04"
   }
 ]
