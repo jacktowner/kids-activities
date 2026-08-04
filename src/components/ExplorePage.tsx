@@ -173,6 +173,36 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [density, setDensity] = useState<"compact" | "expanded">("expanded");
+  const [listWidthPct, setListWidthPct] = useState(66.67);
+  const [isDragging, setIsDragging] = useState(false);
+  const panelsRef = useRef<HTMLDivElement | null>(null);
+
+  // Drag-to-resize the list/map split (desktop only — the resizer handle below is
+  // hidden below the lg breakpoint). Only subscribes to window pointer events while
+  // a drag is in progress, and only calls setState from inside those listener
+  // callbacks, not synchronously in the effect body.
+  useEffect(() => {
+    if (!isDragging) return;
+
+    function handlePointerMove(e: PointerEvent) {
+      const container = panelsRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      const pct = ((e.clientX - rect.left) / rect.width) * 100;
+      setListWidthPct(Math.min(80, Math.max(20, pct)));
+    }
+
+    function handlePointerUp() {
+      setIsDragging(false);
+    }
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isDragging]);
 
   useEffect(() => {
     fetch("/api/meta")
@@ -183,9 +213,10 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
     const query = buildQuery(filters);
-    fetch(`/api/activities${query ? `?${query}` : ""}`, { signal: controller.signal })
+    Promise.resolve()
+      .then(() => setLoading(true))
+      .then(() => fetch(`/api/activities${query ? `?${query}` : ""}`, { signal: controller.signal }))
       .then((res) => res.json())
       .then((data) => setActivities(data))
       .catch((err) => {
@@ -233,11 +264,11 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
       <header className="flex items-start justify-between gap-4">
         <div className="space-y-1 flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
-            South London Kids Activities
+            London Kids Activities
           </h1>
           <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
             Holiday clubs, camps and drop-in activities for ages 4–16, curated from council,
-            museum and local organiser listings across South London.
+            museum and local organiser listings across London.
           </p>
         </div>
         <div className="flex items-center gap-3 shrink-0">
@@ -340,21 +371,43 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[2fr_1fr] gap-6 flex-1 min-h-0">
-        <ActivityListPanel
-          key={`${buildQuery(filters)}|${sortKey}|${sortDir}`}
-          activities={sortedActivities}
-          loading={loading}
-          activeId={activeId}
-          hidden={view === "map"}
-          compact={density === "compact"}
-          onHover={setActiveId}
-          onSelect={handleSelectFromList}
-          onCategoryClick={(category) => setFilters({ ...filters, category })}
-        />
+      <div
+        ref={panelsRef}
+        className={`flex flex-col lg:flex-row gap-6 lg:gap-0 flex-1 min-h-0 ${
+          isDragging ? "select-none" : ""
+        }`}
+        style={{ "--list-w": `${listWidthPct}%` } as React.CSSProperties}
+      >
+        <div className="w-full lg:w-[var(--list-w)] lg:shrink-0 lg:min-w-0">
+          <ActivityListPanel
+            key={`${buildQuery(filters)}|${sortKey}|${sortDir}`}
+            activities={sortedActivities}
+            loading={loading}
+            activeId={activeId}
+            hidden={view === "map"}
+            compact={density === "compact"}
+            onHover={setActiveId}
+            onSelect={handleSelectFromList}
+            onCategoryClick={(category) => setFilters({ ...filters, category })}
+          />
+        </div>
 
         <div
-          className={`h-[70vh] lg:h-auto lg:max-h-[calc(100vh-220px)] ${
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize list and map panels"
+          onPointerDown={() => setIsDragging(true)}
+          className="hidden lg:flex w-3 shrink-0 cursor-col-resize items-center justify-center group"
+        >
+          <div
+            className={`w-1 h-10 rounded-full transition-colors ${
+              isDragging ? "bg-teal-500" : "bg-slate-300 dark:bg-slate-600 group-hover:bg-teal-400"
+            }`}
+          />
+        </div>
+
+        <div
+          className={`w-full lg:flex-1 lg:min-w-0 h-[70vh] lg:h-auto lg:max-h-[calc(100vh-220px)] ${
             view === "list" ? "hidden lg:block" : ""
           }`}
         >
