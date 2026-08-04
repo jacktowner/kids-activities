@@ -175,7 +175,12 @@ export function ActivityMap({ activities, activeId, focusId, onMarkerClick }: Pr
               </p>
               <Link
                 href={`/activity/${activity.id}`}
-                className="block w-full text-center mt-2 rounded-lg bg-teal-600 text-white text-sm font-medium py-1.5 hover:bg-teal-700 transition"
+                // Leaflet's own CSS sets `.leaflet-container a { color: #0078A8 }` which,
+                // since Tailwind's utilities live inside a CSS @layer and Leaflet's rule
+                // doesn't, wins over `text-white` regardless of specificity — hence the
+                // inline style here rather than a class.
+                style={{ color: "#fff" }}
+                className="block w-full text-center mt-2 rounded-lg bg-teal-600 text-sm font-medium py-1.5 hover:bg-teal-700 transition"
               >
                 View Details →
               </Link>
