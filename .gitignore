@@ -42,7 +42,8 @@ next-env.d.ts
 
 /src/generated/prisma
 
-# database (reproducible via `npm run db:seed`)
+# pre-Postgres-migration SQLite database (superseded by Neon; local-only, not the
+# source of truth anymore)
 /dev.db
 
 # admin-uploaded activity images

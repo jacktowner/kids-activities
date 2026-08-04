@@ -11,14 +11,25 @@ listings (create/edit/delete, mark as featured).
 ## Stack
 
 - Next.js 16.2.11, App Router, React 19.
-- Prisma 7 + SQLite, via `@prisma/adapter-better-sqlite3` (Prisma 7 requires an adapter —
+- Prisma 7 + Postgres (Neon), via `@prisma/adapter-neon` (Prisma 7 requires an adapter —
   there is no `url` in the `datasource` block; the connection string is passed to the
-  adapter in `src/lib/prisma.ts` instead). Adapter class is `PrismaBetterSqlite3` (note
-  capitalization — not `PrismaBetterSQLite3`).
+  adapter instead). Originally SQLite (`@prisma/adapter-better-sqlite3`) for local-only
+  development; migrated to Neon so the app could deploy on Vercel, whose serverless
+  functions have an ephemeral filesystem that can't host a SQLite file. Uses Neon's
+  serverless driver (`@neondatabase/serverless`, WebSocket-based) rather than plain
+  `@prisma/adapter-pg`, since that's the combo Vercel's own Neon marketplace integration is
+  built around. Node has no global `WebSocket` before v22 (Vercel's Node.js functions run
+  on Node 20), so `neonConfig.webSocketConstructor = ws` must be set before constructing
+  the adapter — see `src/lib/prisma.ts`. Every standalone script that builds its own
+  `PrismaClient` (`prisma/seed.ts`, `scripts/*-gemini.ts`) repeats this same adapter setup,
+  since none of them import `src/lib/prisma.ts`.
+- One Neon database is shared between local dev and Vercel (single `DATABASE_URL`, no
+  separate dev/prod split) — acceptable while it's a single-developer project; revisit
+  with a Neon branch per environment if that changes.
 - Generated Prisma client lives at `src/generated/prisma/` (not the default
   `node_modules/.prisma`), imported as `@/generated/prisma/client`.
-- DB file is `dev.db` at the project root (not `prisma/dev.db`);
-  `DATABASE_URL="file:./dev.db"` in `.env`.
+- `npm run build` runs `prisma migrate deploy && next build` (not just `next build`) so
+  schema migrations apply automatically on every Vercel deploy.
 - Leaflet + react-leaflet for maps, loaded client-side only (`dynamic(..., { ssr: false })`)
   since Leaflet touches `window`.
 - Tailwind CSS v4 (`@tailwindcss/postcss`), dark mode via a `.dark` class toggled by
@@ -137,8 +148,12 @@ fetching instead of asking Gemini to browse.
   Nominatim cascade as `src/app/api/geocode/route.ts`, then inserts directly via Prisma
   with `status: "draft"` — auto-discovered listings need an admin to review and hit
   "Publish" in `/admin` before they appear on the public site (see "Activity status" below).
-  It does **not** touch `prisma/seed.ts` (that file is model-of-the-original-30 record
-  only; see the destructive-`main()` warning above, still applies to any other script).
+  It does **not** touch `prisma/seed.ts` — that file's `main()` runs
+  `prisma.activity.deleteMany()` before recreating everything from its hardcoded
+  `activities` array, so running/importing it against the live database would silently
+  wipe every row not in that array (including anything inserted by this script or by
+  `/account`/`/admin`). Treat it as a historical record of the original seed data only,
+  never something to run or import from again.
   Default is a dry run (prints what it would insert/expire); needs `--write` to actually
   write. Retries once-per-minute-limit 429s using the API's own "retry in Xs" hint, and
   paces itself (~3.5s between sources) to stay under the free tier's 20 requests/minute cap.
@@ -156,9 +171,10 @@ fetching instead of asking Gemini to browse.
 
 ## Activity status: draft / published / expired
 
-`Activity.status` (plain `String @default("published")`, not a Prisma enum — SQLite's
-connector doesn't support native enums, same reasoning as the free-text `category`/
-`borough` fields; validated in the app instead via `ActivityStatus` in
+`Activity.status` (plain `String @default("published")`, not a Prisma enum — this field
+predates the move to Postgres, which does support native enums, but it was kept as a
+free-text string for consistency with `category`/`borough` and to avoid an extra schema
+change during the Postgres migration; validated in the app instead via `ActivityStatus` in
 `src/types/activity.ts` and `ALLOWED_STATUSES` in `src/lib/activity-input.ts`).
 
 - **Public site** (`GET /api/activities`) only ever returns `status: "published"` (plus

@@ -17,10 +17,11 @@
  *   npx tsx scripts/discover-sources-gemini.ts --write     # actually appends validated sources to the JSON file
  */
 
+import "dotenv/config";
 import { readFileSync, writeFileSync, appendFileSync, mkdirSync } from "fs";
 import { join } from "path";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
 
 const ROOT = join(__dirname, "..");
 const SOURCES_FILE = join(ROOT, "scripts", "gemini-sources.json");
@@ -137,7 +138,7 @@ async function validateCandidate(url: string): Promise<boolean> {
 async function main() {
   const write = process.argv.includes("--write");
   const apiKey = loadApiKey();
-  const adapter = new PrismaBetterSqlite3({ url: process.env.DATABASE_URL ?? "file:./dev.db" });
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
   const prisma = new PrismaClient({ adapter });
 
   const log = (msg: string) => {
