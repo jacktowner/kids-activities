@@ -1,5 +1,8 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { normalizeCategories, formatCategories } from "@/lib/category";
+import type { ActivityStatus } from "@/types/activity";
+
+const ALLOWED_STATUSES: ActivityStatus[] = ["draft", "published", "expired"];
 
 export function toActivityData(body: Record<string, unknown>): Prisma.ActivityCreateInput {
   return {
@@ -23,5 +26,8 @@ export function toActivityData(body: Record<string, unknown>): Prisma.ActivityCr
     sourceUrl: body.sourceUrl ? String(body.sourceUrl).trim() : null,
     imageUrl: body.imageUrl ? String(body.imageUrl) : null,
     featured: Boolean(body.featured),
+    status: ALLOWED_STATUSES.includes(body.status as ActivityStatus)
+      ? (body.status as ActivityStatus)
+      : "published",
   };
 }

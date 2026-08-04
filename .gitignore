@@ -48,5 +48,8 @@ next-env.d.ts
 # admin-uploaded activity images
 /public/uploads
 
+# runtime logs from scripts/*-gemini.ts (cron-invoked)
+/logs
+
 # local-only Claude Code settings
 .claude/settings.local.json

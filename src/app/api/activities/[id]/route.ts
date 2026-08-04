@@ -31,6 +31,7 @@ export async function PATCH(request: NextRequest, ctx: Ctx) {
   const data = toActivityData(body);
   if (actor.kind === "user") {
     data.featured = false;
+    data.status = "published";
   }
 
   try {

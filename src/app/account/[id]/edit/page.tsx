@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { ActivityForm } from "@/components/admin/ActivityForm";
 import { USER_SESSION_COOKIE, getSessionUser } from "@/lib/user-auth";
+import type { ActivityStatus } from "@/types/activity";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -23,6 +24,7 @@ export default async function EditListingPage({ params }: Props) {
           ...activity,
           startDate: activity.startDate.toISOString(),
           endDate: activity.endDate.toISOString(),
+          status: activity.status as ActivityStatus,
         }}
         hideFeatured
         redirectTo="/account"

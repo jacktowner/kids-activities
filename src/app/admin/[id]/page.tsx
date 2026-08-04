@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import { ActivityForm } from "@/components/admin/ActivityForm";
+import type { ActivityStatus } from "@/types/activity";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -17,6 +18,7 @@ export default async function EditActivityPage({ params }: Props) {
           ...activity,
           startDate: activity.startDate.toISOString(),
           endDate: activity.endDate.toISOString(),
+          status: activity.status as ActivityStatus,
         }}
       />
     </div>

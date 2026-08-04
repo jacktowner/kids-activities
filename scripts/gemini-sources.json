@@ -1,0 +1,122 @@
+[
+  {
+    "name": "British Museum",
+    "url": "https://www.britishmuseum.org/visit/family-visits",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Science Museum",
+    "url": "https://www.sciencemuseum.org.uk/visit",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Natural History Museum",
+    "url": "https://www.nhm.ac.uk/visit.html",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "V&A",
+    "url": "https://www.vam.ac.uk/info/families",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "National Gallery",
+    "url": "https://www.nationalgallery.org.uk/visiting/family-activities",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Barbican Centre",
+    "url": "https://www.barbican.org.uk/your-visit/general-info/families",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Saatchi Gallery",
+    "url": "https://www.saatchigallery.com/whats-on",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Serpentine Galleries",
+    "url": "https://www.serpentinegalleries.org/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Imperial War Museums",
+    "url": "https://www.iwm.org.uk/events/family-activities-iwm-london",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Royal Museums Greenwich",
+    "url": "https://www.rmg.co.uk/whats-on",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Horniman Museum and Gardens",
+    "url": "https://www.horniman.ac.uk/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Dulwich Picture Gallery",
+    "url": "https://www.dulwichpicturegallery.org.uk/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "The Royal Parks",
+    "url": "https://www.royalparks.org.uk/whats-on",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Museum of Croydon",
+    "url": "https://museumofcroydon.com/whats-on-listings",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Croydon Council",
+    "url": "https://www.croydon.gov.uk/holiday-activities-and-food",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Royal Borough of Greenwich",
+    "url": "https://www.royalgreenwich.gov.uk/holidayfoodandfun",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Lewisham Council",
+    "url": "https://lewisham.gov.uk/myservices/youth-services/holiday-activities-and-food-programme",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Lewisham Libraries",
+    "url": "https://libraries.lewisham.gov.uk/events",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Time Out London",
+    "url": "https://www.timeout.com/london/kids",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "WWT London Wetland Centre",
+    "url": "https://www.wwt.org.uk/wetland-centres/london/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Museum of the Home",
+    "url": "https://museumofthehome.org.uk/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "William Morris Gallery",
+    "url": "https://www.wmgallery.org.uk/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Pitzhanger Manor & Gallery",
+    "url": "https://www.pitzhanger.org.uk/whats-on/",
+    "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Orleans House Gallery",
+    "url": "https://www.orleanshousegallery.org/whats-on/",
+    "addedAt": "2026-08-04"
+  }
+]

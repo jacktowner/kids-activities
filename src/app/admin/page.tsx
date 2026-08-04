@@ -2,7 +2,9 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDateRange, formatPrice } from "@/lib/format";
 import { DeleteActivityButton } from "@/components/admin/DeleteActivityButton";
+import { PublishActivityButton } from "@/components/admin/PublishActivityButton";
 import { LogoutButton } from "@/components/admin/LogoutButton";
+import type { ActivityStatus } from "@/types/activity";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +19,17 @@ const ORDER_BY_FIELD: Record<SortKey, string> = {
   subjects: "category",
 };
 
+const STATUS_TABS = ["all", "published", "draft", "expired"] as const;
+type StatusTab = (typeof STATUS_TABS)[number];
+
+const STATUS_BADGE: Record<ActivityStatus, string> = {
+  published: "bg-emerald-100 text-emerald-800",
+  draft: "bg-slate-200 text-slate-700",
+  expired: "bg-red-100 text-red-700",
+};
+
 type Props = {
-  searchParams: Promise<{ sort?: string; dir?: string }>;
+  searchParams: Promise<{ sort?: string; dir?: string; status?: string }>;
 };
 
 export default async function AdminPage({ searchParams }: Props) {
@@ -27,10 +38,25 @@ export default async function AdminPage({ searchParams }: Props) {
     ? (params.sort as SortKey)
     : "date";
   const dir: SortDir = params.dir === "desc" ? "desc" : "asc";
+  const statusTab: StatusTab = STATUS_TABS.includes(params.status as StatusTab)
+    ? (params.status as StatusTab)
+    : "all";
 
-  const activities = await prisma.activity.findMany({
-    orderBy: { [ORDER_BY_FIELD[sort]]: dir },
-  });
+  const [activities, statusCounts] = await Promise.all([
+    prisma.activity.findMany({
+      where: statusTab === "all" ? {} : { status: statusTab },
+      orderBy: { [ORDER_BY_FIELD[sort]]: dir },
+    }),
+    prisma.activity.groupBy({ by: ["status"], _count: true }),
+  ]);
+  const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count]));
+  const totalCount = statusCounts.reduce((sum, s) => sum + s._count, 0);
+
+  function statusHref(tab: StatusTab) {
+    const qs = new URLSearchParams({ sort, dir });
+    if (tab !== "all") qs.set("status", tab);
+    return `/admin?${qs.toString()}`;
+  }
 
   function sortHeader(key: SortKey, label: string) {
     const nextDir: SortDir = sort === key && dir === "asc" ? "desc" : "asc";
@@ -65,6 +91,22 @@ export default async function AdminPage({ searchParams }: Props) {
         </div>
       </div>
 
+      <div className="flex items-center gap-2 text-sm">
+        {STATUS_TABS.map((tab) => (
+          <Link
+            key={tab}
+            href={statusHref(tab)}
+            className={`px-3 py-1.5 rounded-lg font-medium capitalize ${
+              statusTab === tab
+                ? "bg-teal-600 text-white"
+                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+            }`}
+          >
+            {tab} ({tab === "all" ? totalCount : countByStatus.get(tab) ?? 0})
+          </Link>
+        ))}
+      </div>
+
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         {activities.length === 0 ? (
           <p className="p-6 text-sm text-slate-400 text-center">No activities yet.</p>
@@ -90,6 +132,13 @@ export default async function AdminPage({ searchParams }: Props) {
                             ★
                           </span>
                         )}
+                        {activity.status !== "published" && (
+                          <span
+                            className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[activity.status as ActivityStatus]}`}
+                          >
+                            {activity.status}
+                          </span>
+                        )}
                         <span className="truncate">{activity.title}</span>
                       </p>
                       <p className="text-xs text-slate-500 mt-0.5 truncate">
@@ -107,6 +156,7 @@ export default async function AdminPage({ searchParams }: Props) {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-3">
+                        <PublishActivityButton id={activity.id} status={activity.status as ActivityStatus} />
                         <Link
                           href={`/admin/${activity.id}`}
                           className="text-sm text-teal-700 hover:text-teal-900 font-medium"

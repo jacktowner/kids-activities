@@ -79,6 +79,7 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
     sourceUrl: activity?.sourceUrl ?? "",
     imageUrl: activity?.imageUrl ?? "",
     featured: activity?.featured ?? false,
+    status: activity?.status ?? "published",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -178,7 +179,7 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
       ageMin: Number(values.ageMin),
       ageMax: Number(values.ageMax),
       ...(values.isFree ? { priceMin: 0, priceMax: 0 } : parsePriceInput(price)),
-      ...(hideFeatured ? { featured: false } : {}),
+      ...(hideFeatured ? { featured: false, status: "published" } : {}),
     };
 
     const res = await fetch(activity ? `/api/activities/${activity.id}` : "/api/activities", {
@@ -426,6 +427,20 @@ export function ActivityForm({ activity, hideFeatured = false, redirectTo = "/ad
           </label>
         )}
       </div>
+
+      {!hideFeatured && (
+        <Field label="Status">
+          <select
+            value={values.status}
+            onChange={(e) => set("status", e.target.value as Activity["status"])}
+            className={inputClass}
+          >
+            <option value="published">Published (visible on the site)</option>
+            <option value="draft">Draft (hidden, awaiting review)</option>
+            <option value="expired">Expired (hidden, finished)</option>
+          </select>
+        </Field>
+      )}
 
       {!values.isFree && (
         <Field label="Price (£)">

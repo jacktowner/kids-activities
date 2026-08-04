@@ -34,6 +34,7 @@ model Activity {
   sourceUrl   String?
   imageUrl    String?
   featured    Boolean  @default(false)
+  status      String   @default("published")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   ownerId     String?

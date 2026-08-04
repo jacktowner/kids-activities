@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   const dateFrom = params.get("dateFrom");
   const dateTo = params.get("dateTo");
 
-  const where: Prisma.ActivityWhereInput = {};
+  const where: Prisma.ActivityWhereInput = { status: "published" };
 
   if (q) {
     where.OR = [
@@ -45,13 +45,15 @@ export async function GET(request: NextRequest) {
     where.priceMin = { lte: priceMax };
   }
 
-  if (dateFrom || dateTo) {
-    where.AND = [
-      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
-      ...(dateTo ? [{ startDate: { lte: new Date(dateTo) } }] : []),
-      ...(dateFrom ? [{ endDate: { gte: new Date(dateFrom) } }] : []),
-    ];
-  }
+  // Always hide expired listings (endDate in the past), regardless of whether the
+  // caller passed an explicit date filter — "dateFrom" narrows the window further,
+  // it doesn't opt back into seeing already-finished activities.
+  where.AND = [
+    ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+    { endDate: { gte: new Date(new Date().toDateString()) } },
+    ...(dateTo ? [{ startDate: { lte: new Date(dateTo) } }] : []),
+    ...(dateFrom ? [{ endDate: { gte: new Date(dateFrom) } }] : []),
+  ];
 
   const rows = await prisma.activity.findMany({
     where,
@@ -79,6 +81,7 @@ export async function POST(request: NextRequest) {
   const data = toActivityData(body);
   if (actor.kind === "user") {
     data.featured = false;
+    data.status = "published";
     data.owner = { connect: { id: actor.id } };
   }
 

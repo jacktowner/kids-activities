@@ -2,10 +2,11 @@
 
 # Project overview
 
-A South London kids-activities finder: parents search/filter holiday clubs, camps and
-drop-in activities by borough, category, age, price and date, browse them as cards or on
-a map, and view a dedicated detail page per activity. There's a password-gated admin
-console for managing listings (create/edit/delete, mark as featured).
+A London kids-activities finder (originally South London-only, now covering all Greater
+London boroughs): parents search/filter holiday clubs, camps and drop-in activities by
+borough, category, age, price and date, browse them as cards or on a map, and view a
+dedicated detail page per activity. There's a password-gated admin console for managing
+listings (create/edit/delete, mark as featured).
 
 ## Stack
 
@@ -102,13 +103,81 @@ accounts.
   `/admin/*` routes except `/admin/login`.
 - `src/app/api/activities/route.ts` — public listing API; `GET` supports
   `q`/`borough`/`category`/`age`/`freeOnly`/`priceMax`/`dateFrom`/`dateTo` query params,
-  always orders `featured` first then `startDate` ascending; `POST` is admin-only.
+  always orders `featured` first then `startDate` ascending, and always excludes activities
+  whose `endDate` is in the past (expired listings never show, independent of any date
+  filter passed in — see `where.AND` in that file); `POST` requires any authenticated actor
+  (admin or user, via `resolveActor`), not admin-only.
 - `public/illustrations/kids-playing.svg` — unDraw "Children" illustration, recolored to
   the site's teal accent and given a low opacity, used as a fixed background image
   (wired in `src/app/globals.css`).
 - `src/app/account/*` — password-gated-per-user console (signup/login/dashboard/new/edit)
   so regular visitors can submit and manage their own listings; publishes immediately, no
   admin approval queue. See "Two parallel auth systems" above.
+
+## Automated daily listing refresh (Gemini + system crontab)
+
+Two standalone scripts, run via the *system* crontab (not an in-process scheduler —
+`crontab -l` on this machine, entries live alongside two unrelated jobs from
+`~/contract-jobs`). Both use the free-tier Gemini API (`GEMINI_API_KEY` in `.env`, loaded
+by the scripts themselves since cron's environment won't have it exported) via plain
+`generateContent` REST calls — **not** Google Search grounding, which returned
+`429 RESOURCE_EXHAUSTED` on this key because grounding requires a billing-enabled Gemini
+project. Everything here works on the free tier by having the scripts do their own
+fetching instead of asking Gemini to browse.
+
+- `scripts/refresh-activities-gemini.ts` — runs daily at 5am
+  (`0 5 * * * cd ... && npx tsx scripts/refresh-activities-gemini.ts --write --limit=15`,
+  logs to `logs/gemini-refresh.log`). First flips any activity whose `endDate` has passed
+  to `status: "expired"` (so it drops out of the public listing regardless of whether the
+  rest of the run finds anything). Then fetches each URL in `scripts/gemini-sources.json`,
+  strips it to plain text, and asks Gemini to extract real, non-expired, family-friendly
+  activities from *only* that text (so `sourceUrl` is always a page the script actually
+  fetched, never a Gemini-invented URL). Validates every field, skips anything already in
+  the DB (by title) or missing an allowed category/valid dates, geocodes via the same
+  Nominatim cascade as `src/app/api/geocode/route.ts`, then inserts directly via Prisma
+  with `status: "draft"` — auto-discovered listings need an admin to review and hit
+  "Publish" in `/admin` before they appear on the public site (see "Activity status" below).
+  It does **not** touch `prisma/seed.ts` (that file is model-of-the-original-30 record
+  only; see the destructive-`main()` warning above, still applies to any other script).
+  Default is a dry run (prints what it would insert/expire); needs `--write` to actually
+  write. Retries once-per-minute-limit 429s using the API's own "retry in Xs" hint, and
+  paces itself (~3.5s between sources) to stay under the free tier's 20 requests/minute cap.
+- `scripts/discover-sources-gemini.ts` — runs weekly (Mondays, 4am), grows the source list
+  over time so it isn't a fixed hardcoded set forever. Asks Gemini (from training
+  knowledge only, since grounding isn't available) to suggest new "what's on" hub-page
+  URLs, biased toward London boroughs with `<3` activities in the DB, then **independently
+  verifies every suggestion by fetching it** (must return real content with
+  family/event-ish keywords) before appending it to `scripts/gemini-sources.json` — a
+  hallucinated or dead URL from Gemini is simply discarded, never trusted. Also defaults to
+  dry run; needs `--write`. Capped at 5 new sources/run.
+- Both scripts fetch pages with a browser-like `User-Agent`; some sites (British Museum,
+  Science Museum as of this writing) still 403/block them — treated as an expected,
+  logged-and-skipped source, not an error.
+
+## Activity status: draft / published / expired
+
+`Activity.status` (plain `String @default("published")`, not a Prisma enum — SQLite's
+connector doesn't support native enums, same reasoning as the free-text `category`/
+`borough` fields; validated in the app instead via `ActivityStatus` in
+`src/types/activity.ts` and `ALLOWED_STATUSES` in `src/lib/activity-input.ts`).
+
+- **Public site** (`GET /api/activities`) only ever returns `status: "published"` (plus
+  the pre-existing `endDate >= today` backstop) — drafts and expired listings never show.
+- **Admin/user-created listings still publish immediately** — `toActivityData` defaults to
+  `"published"` when the client doesn't send a status, and regular-user writes force
+  `status: "published"` server-side (`src/app/api/activities/route.ts` POST,
+  `src/app/api/activities/[id]/route.ts` PATCH), mirroring how `featured` is forced to
+  `false` for non-admins. Only admin can set `draft`/`expired` manually, via the status
+  dropdown in `ActivityForm` (hidden on `/account/*` forms via the existing `hideFeatured`
+  prop — same prop now also hides the status control and forces `published`).
+- **Auto-discovered listings start as `draft`** (see `refresh-activities-gemini.ts` above)
+  — they need a human to hit "Publish" in `/admin` before they're public.
+- `src/app/admin/page.tsx` has status filter tabs (`?status=all|published|draft|expired`)
+  and a status badge per row; `PublishActivityButton` does a quick
+  `PATCH /api/activities/[id]/status` (a separate, minimal endpoint —
+  `PATCH /api/activities/[id]` always rebuilds the *entire* record from
+  `toActivityData`, so it can't be used for a single-field change without re-sending every
+  other field too).
 
 # Session management
 

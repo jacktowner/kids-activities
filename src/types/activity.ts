@@ -20,8 +20,11 @@ export type Activity = {
   sourceUrl: string | null;
   imageUrl: string | null;
   featured: boolean;
+  status: ActivityStatus;
   ownerId: string | null;
 };
+
+export type ActivityStatus = "draft" | "published" | "expired";
 
 export type ActivityFilters = {
   q?: string;

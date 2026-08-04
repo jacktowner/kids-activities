@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDateRange, formatPrice } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ActivityDetailMap } from "@/components/ActivityDetailMap";
-import type { Activity } from "@/types/activity";
+import type { Activity, ActivityStatus } from "@/types/activity";
 import { parseCategories } from "@/lib/category";
 
 type Props = { params: Promise<{ id: string }> };
@@ -17,6 +17,7 @@ async function getActivity(id: string) {
     ...record,
     startDate: record.startDate.toISOString(),
     endDate: record.endDate.toISOString(),
+    status: record.status as ActivityStatus,
   };
   return activity;
 }
@@ -26,7 +27,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const activity = await getActivity(id);
   if (!activity) return { title: "Activity not found" };
   return {
-    title: `${activity.title} | South London Kids Activities`,
+    title: `${activity.title} | London Kids Activities`,
     description: activity.description,
   };
 }
