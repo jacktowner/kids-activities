@@ -116,13 +116,11 @@ type Props = {
   activeId: string | null;
   /** Set only on click (not hover) — pans/zooms the map to this activity. */
   focusId: string | null;
-  /** Called when a pin is clicked, to highlight it (does not change view). */
+  /** Called when a pin is clicked, to highlight it and jump to it in the list. */
   onMarkerClick?: (id: string) => void;
-  /** Called when the "View in list" link inside a popup is clicked. */
-  onViewInList?: (id: string) => void;
 };
 
-export function ActivityMap({ activities, activeId, focusId, onMarkerClick, onViewInList }: Props) {
+export function ActivityMap({ activities, activeId, focusId, onMarkerClick }: Props) {
   const markers = useMemo(() => activities.filter((a) => a.lat && a.lng), [activities]);
   const markerRefs = useRef(new Map<string, L.Marker>());
 
@@ -174,15 +172,6 @@ export function ActivityMap({ activities, activeId, focusId, onMarkerClick, onVi
                 🎂 Ages {activity.ageMin}–{activity.ageMax} · 📅{" "}
                 {formatDateRange(activity.startDate, activity.endDate)}
               </p>
-              {onViewInList && (
-                <button
-                  type="button"
-                  onClick={() => onViewInList(activity.id)}
-                  className="block w-full text-center mt-2 rounded-lg bg-teal-600 text-white text-sm font-medium py-1.5 hover:bg-teal-700 transition"
-                >
-                  View in list →
-                </button>
-              )}
             </div>
           </Popup>
         </Marker>

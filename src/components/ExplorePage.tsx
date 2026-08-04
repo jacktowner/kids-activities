@@ -272,10 +272,6 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   function handleMarkerClick(id: string) {
     setActiveId(id);
     setFocusId(id);
-  }
-
-  function handleSelectFromMap(id: string) {
-    setActiveId(id);
     setView("list");
     setListFocusId(id);
   }
@@ -438,7 +434,6 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
             activeId={activeActivity?.id ?? null}
             focusId={focusId}
             onMarkerClick={handleMarkerClick}
-            onViewInList={handleSelectFromMap}
           />
         </div>
       </div>
