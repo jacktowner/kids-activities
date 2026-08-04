@@ -26,6 +26,37 @@ const DATE_PRESETS = [
   { label: "October half term 2026", from: "2026-10-26", to: "2026-11-01" },
 ];
 
+// Local date components, not toISOString (which is UTC-based and can shift the
+// calendar date by a day for UK users during BST, e.g. just after local midnight).
+function toDateStr(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+// Sat/Sun of the coming weekend — if today is already Sunday, "this weekend" is
+// just today (Saturday's already passed), though a Sat-starting event still
+// matches via the API's endDate >= dateFrom check.
+function thisWeekendRange(): { from: string; to: string } {
+  const now = new Date();
+  const day = now.getDay(); // 0 = Sunday .. 6 = Saturday
+  if (day === 0) return { from: toDateStr(now), to: toDateStr(now) };
+
+  const saturday = new Date(now);
+  saturday.setDate(now.getDate() + ((6 - day + 7) % 7));
+  const sunday = new Date(saturday);
+  sunday.setDate(saturday.getDate() + 1);
+  return { from: toDateStr(saturday), to: toDateStr(sunday) };
+}
+
+function next7DaysRange(): { from: string; to: string } {
+  const now = new Date();
+  const end = new Date(now);
+  end.setDate(now.getDate() + 7);
+  return { from: toDateStr(now), to: toDateStr(end) };
+}
+
 export function FilterPanel({
   filters,
   onChange,
@@ -140,6 +171,34 @@ export function FilterPanel({
             <label className="flex items-center gap-1 text-sm font-semibold text-teal-800 dark:text-teal-300 mb-1">
               📅 When
             </label>
+            <div className="flex gap-1.5 mb-1.5">
+              {[
+                { label: "This weekend", range: thisWeekendRange() },
+                { label: "Next 7 days", range: next7DaysRange() },
+              ].map(({ label, range }) => {
+                const active = filters.dateFrom === range.from && filters.dateTo === range.to;
+                return (
+                  <button
+                    key={label}
+                    type="button"
+                    onClick={() =>
+                      onChange({
+                        ...filters,
+                        dateFrom: active ? undefined : range.from,
+                        dateTo: active ? undefined : range.to,
+                      })
+                    }
+                    className={`flex-1 rounded-lg border px-2 py-1 text-xs font-medium transition ${
+                      active
+                        ? "bg-teal-600 border-teal-600 text-white"
+                        : "border-teal-400 dark:border-teal-600 bg-white dark:bg-slate-900 text-teal-700 dark:text-teal-300 hover:bg-teal-50 dark:hover:bg-teal-900/40"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
             <select
               value={activePreset ? activePreset.label : "custom"}
               onChange={(e) => {
