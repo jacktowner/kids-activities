@@ -27,9 +27,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "South London Kids Activities | Holiday Activity Finder",
+  title: "London Kids Activities | Holiday Activity Finder",
   description:
-    "Find kids activities across South London during the school holidays. Filter by price, age range and date, and see them all on a map.",
+    "Find kids activities across London during the school holidays. Filter by price, age range and date, and see them all on a map.",
 };
 
 export default function RootLayout({

@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     const res = await fetch(url, {
       headers: {
-        "User-Agent": "south-london-kids-activities-admin/1.0",
+        "User-Agent": "london-kids-activities-admin/1.0",
       },
     });
 
