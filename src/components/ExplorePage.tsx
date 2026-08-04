@@ -64,6 +64,8 @@ type ActivityListPanelProps = {
   activities: Activity[];
   loading: boolean;
   activeId: string | null;
+  /** An activity to reveal (growing the paged-in slice if needed) and scroll to. */
+  listFocusId: string | null;
   hidden: boolean;
   compact: boolean;
   onHover: (id: string | null) => void;
@@ -78,6 +80,7 @@ function ActivityListPanel({
   activities,
   loading,
   activeId,
+  listFocusId,
   hidden,
   compact,
   onHover,
@@ -111,6 +114,28 @@ function ActivityListPanel({
     observer.observe(sentinel);
     return () => observer.disconnect();
   }, [activities.length]);
+
+  // A pin selected on the map can be further down the sorted list than the
+  // currently-paged-in slice (infinite scroll only renders PAGE_SIZE at a time),
+  // so grow the slice to include it before trying to scroll to it.
+  useEffect(() => {
+    if (!listFocusId) return;
+    const index = activities.findIndex((a) => a.id === listFocusId);
+    if (index === -1) return;
+
+    Promise.resolve()
+      .then(() => {
+        if (index >= visibleCount) setVisibleCount(index + 1);
+      })
+      .then(() => {
+        requestAnimationFrame(() => {
+          document.getElementById(`activity-${listFocusId}`)?.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        });
+      });
+  }, [listFocusId, activities, visibleCount]);
 
   return (
     <div
@@ -169,6 +194,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [loading, setLoading] = useState(true);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
+  const [listFocusId, setListFocusId] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "map">("list");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -251,12 +277,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   function handleSelectFromMap(id: string) {
     setActiveId(id);
     setView("list");
-    requestAnimationFrame(() => {
-      document.getElementById(`activity-${id}`)?.scrollIntoView({
-        behavior: "smooth",
-        block: "center",
-      });
-    });
+    setListFocusId(id);
   }
 
   return (
@@ -384,6 +405,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
             activities={sortedActivities}
             loading={loading}
             activeId={activeId}
+            listFocusId={listFocusId}
             hidden={view === "map"}
             compact={density === "compact"}
             onHover={setActiveId}
