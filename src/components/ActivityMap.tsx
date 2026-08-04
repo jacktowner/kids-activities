@@ -2,6 +2,7 @@
 
 import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import L from "leaflet";
+import Link from "next/link";
 import { useEffect, useMemo, useRef } from "react";
 import type { Activity } from "@/types/activity";
 import { formatDateRange, formatPrice } from "@/lib/format";
@@ -172,6 +173,12 @@ export function ActivityMap({ activities, activeId, focusId, onMarkerClick }: Pr
                 🎂 Ages {activity.ageMin}–{activity.ageMax} · 📅{" "}
                 {formatDateRange(activity.startDate, activity.endDate)}
               </p>
+              <Link
+                href={`/activity/${activity.id}`}
+                className="block w-full text-center mt-2 rounded-lg bg-teal-600 text-white text-sm font-medium py-1.5 hover:bg-teal-700 transition"
+              >
+                View Details →
+              </Link>
             </div>
           </Popup>
         </Marker>
