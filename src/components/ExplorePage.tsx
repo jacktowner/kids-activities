@@ -8,6 +8,9 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { CategoryNav } from "@/components/CategoryNav";
 import { AccountNav } from "@/components/AccountNav";
 import type { Activity, ActivityFilters } from "@/types/activity";
+import { haversineKm } from "@/lib/distance";
+
+export type UserLocation = { lat: number; lng: number; label: string };
 
 const ActivityMap = dynamic(
   () => import("@/components/ActivityMap").then((mod) => mod.ActivityMap),
@@ -29,7 +32,7 @@ type Meta = {
   maxPrice: number;
 };
 
-type SortKey = "name" | "date" | "price" | "subjects";
+type SortKey = "name" | "date" | "price" | "subjects" | "borough" | "distance";
 type SortDir = "asc" | "desc";
 
 const SORT_OPTIONS: { key: SortKey; label: string }[] = [
@@ -37,9 +40,16 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "name", label: "Name" },
   { key: "price", label: "Price" },
   { key: "subjects", label: "Subjects" },
+  { key: "borough", label: "Borough" },
+  { key: "distance", label: "Distance" },
 ];
 
-function sortActivities(activities: Activity[], sortKey: SortKey, sortDir: SortDir) {
+function sortActivities(
+  activities: Activity[],
+  sortKey: SortKey,
+  sortDir: SortDir,
+  userLocation: UserLocation | null
+) {
   const sorted = [...activities].sort((a, b) => {
     switch (sortKey) {
       case "name":
@@ -50,6 +60,11 @@ function sortActivities(activities: Activity[], sortKey: SortKey, sortDir: SortD
         return (a.isFree ? 0 : a.priceMin) - (b.isFree ? 0 : b.priceMin);
       case "subjects":
         return a.category.localeCompare(b.category);
+      case "borough":
+        return a.borough.localeCompare(b.borough);
+      case "distance":
+        if (!userLocation) return 0;
+        return haversineKm(userLocation, a) - haversineKm(userLocation, b);
     }
   });
   const withDir = sortDir === "desc" ? sorted.reverse() : sorted;
@@ -201,7 +216,19 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [density, setDensity] = useState<"compact" | "expanded">("expanded");
   const [listWidthPct, setListWidthPct] = useState(66.67);
   const [isDragging, setIsDragging] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const panelsRef = useRef<HTMLDivElement | null>(null);
+
+  function handleSetLocation(location: UserLocation) {
+    setUserLocation(location);
+    setSortKey("distance");
+    setSortDir("asc");
+  }
+
+  function handleClearLocation() {
+    setUserLocation(null);
+    setSortKey("date");
+  }
 
   // Drag-to-resize the list/map split (desktop only — the resizer handle below is
   // hidden below the lg breakpoint). Only subscribes to window pointer events while
@@ -259,8 +286,8 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 
   const sortedActivities = useMemo(
-    () => sortActivities(activities, sortKey, sortDir),
-    [activities, sortKey, sortDir]
+    () => sortActivities(activities, sortKey, sortDir, userLocation),
+    [activities, sortKey, sortDir, userLocation]
   );
 
   function handleSelectFromList(id: string) {
@@ -305,6 +332,9 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
         onChange={setFilters}
         meta={meta}
         resultCount={activities.length}
+        userLocation={userLocation}
+        onSetLocation={handleSetLocation}
+        onClearLocation={handleClearLocation}
       />
 
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -370,7 +400,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
             onChange={(e) => setSortKey(e.target.value as SortKey)}
             className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1"
           >
-            {SORT_OPTIONS.map((opt) => (
+            {SORT_OPTIONS.filter((opt) => opt.key !== "distance" || userLocation).map((opt) => (
               <option key={opt.key} value={opt.key}>
                 {opt.label}
               </option>

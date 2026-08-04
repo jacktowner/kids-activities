@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { ActivityFilters } from "@/types/activity";
+import type { UserLocation } from "@/components/ExplorePage";
 
 type Meta = {
   boroughs: string[];
@@ -14,6 +15,9 @@ type Props = {
   onChange: (filters: ActivityFilters) => void;
   meta: Meta | null;
   resultCount: number;
+  userLocation: UserLocation | null;
+  onSetLocation: (location: UserLocation) => void;
+  onClearLocation: () => void;
 };
 
 const DATE_PRESETS = [
@@ -22,8 +26,19 @@ const DATE_PRESETS = [
   { label: "October half term 2026", from: "2026-10-26", to: "2026-11-01" },
 ];
 
-export function FilterPanel({ filters, onChange, meta, resultCount }: Props) {
+export function FilterPanel({
+  filters,
+  onChange,
+  meta,
+  resultCount,
+  userLocation,
+  onSetLocation,
+  onClearLocation,
+}: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [postcode, setPostcode] = useState("");
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   function set<K extends keyof ActivityFilters>(key: K, value: ActivityFilters[K]) {
     onChange({ ...filters, [key]: value });
@@ -31,6 +46,55 @@ export function FilterPanel({ filters, onChange, meta, resultCount }: Props) {
 
   function reset() {
     onChange({});
+  }
+
+  function handleUseMyLocation() {
+    if (!navigator.geolocation) {
+      setLocationError("Geolocation isn't supported by your browser.");
+      return;
+    }
+    setLocationError(null);
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocating(false);
+        onSetLocation({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          label: "your location",
+        });
+      },
+      (err) => {
+        setLocating(false);
+        setLocationError(
+          err.code === err.PERMISSION_DENIED
+            ? "Location permission denied."
+            : "Couldn't get your location."
+        );
+      }
+    );
+  }
+
+  async function handlePostcodeSearch(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = postcode.trim();
+    if (!trimmed) return;
+
+    setLocationError(null);
+    setLocating(true);
+    try {
+      const res = await fetch(`/api/postcode?postcode=${encodeURIComponent(trimmed)}`);
+      if (!res.ok) {
+        setLocationError(res.status === 404 ? "Postcode not found." : "Postcode lookup failed.");
+        return;
+      }
+      const { lat, lng } = await res.json();
+      onSetLocation({ lat, lng, label: trimmed.toUpperCase() });
+    } catch {
+      setLocationError("Postcode lookup failed.");
+    } finally {
+      setLocating(false);
+    }
   }
 
   const activePreset = DATE_PRESETS.find(
@@ -139,6 +203,49 @@ export function FilterPanel({ filters, onChange, meta, resultCount }: Props) {
               )}
             </div>
           </details>
+
+          {userLocation ? (
+            <div className="mt-1.5 flex items-center justify-between gap-2 text-xs text-teal-800 dark:text-teal-300">
+              <span className="truncate">📍 Near {userLocation.label}</span>
+              <button
+                type="button"
+                onClick={onClearLocation}
+                className="shrink-0 text-teal-700 dark:text-teal-400 hover:underline"
+              >
+                Clear
+              </button>
+            </div>
+          ) : (
+            <div className="mt-1.5 space-y-1">
+              <div className="flex gap-1.5">
+                <form onSubmit={handlePostcodeSearch} className="flex-1 flex gap-1.5">
+                  <input
+                    type="text"
+                    placeholder="Postcode"
+                    value={postcode}
+                    onChange={(e) => setPostcode(e.target.value)}
+                    className="w-full min-w-0 rounded-lg border border-teal-400 dark:border-teal-600 dark:bg-slate-900 dark:text-slate-100 px-2 py-1 text-xs focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <button
+                    type="submit"
+                    disabled={locating}
+                    className="shrink-0 rounded-lg bg-teal-600 text-white text-xs font-medium px-2.5 py-1 hover:bg-teal-700 transition disabled:opacity-50"
+                  >
+                    Search
+                  </button>
+                </form>
+              </div>
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                disabled={locating}
+                className="w-full text-xs font-medium text-teal-700 dark:text-teal-400 hover:underline disabled:opacity-50"
+              >
+                {locating ? "Locating…" : "📍 Activities in my location"}
+              </button>
+              {locationError && <p className="text-xs text-red-600 dark:text-red-400">{locationError}</p>}
+            </div>
+          )}
         </div>
       </div>
 
