@@ -161,7 +161,7 @@ export function FilterPanel({
   ].filter(Boolean).length;
 
   return (
-    <div className="rounded-2xl border-2 border-violet-200 dark:border-violet-800/60 bg-gradient-to-br from-violet-50 via-sky-50 to-teal-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-3 sm:p-4 shadow-sm space-y-3">
+    <div className="rounded-2xl border-2 border-violet-200 dark:border-violet-800/60 bg-gradient-to-br from-violet-50 via-sky-50 to-teal-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-2 sm:p-3 shadow-sm space-y-2">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
@@ -170,7 +170,7 @@ export function FilterPanel({
           className="lg:pointer-events-none flex items-center gap-1 text-lg font-bold text-slate-900 dark:text-slate-50"
         >
           🔎 Find an activity
-          <span className={`lg:hidden text-xs transition-transform ${collapsed ? "" : "rotate-180"}`}>
+          <span className={`lg:hidden text-xl leading-none transition-transform ${collapsed ? "" : "rotate-180"}`}>
             ▾
           </span>
         </button>
