@@ -304,20 +304,20 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex flex-col gap-6">
-      <header className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-        <div className="space-y-1 flex-1 min-w-0">
+      <header className="space-y-1">
+        <div className="flex items-start justify-between gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
             London Kids Activities
           </h1>
-          <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
-            Holiday clubs, camps and drop-in activities for ages 4–16, curated from council,
-            museum and local organiser listings across London.
-          </p>
+          <div className="flex items-center gap-3 shrink-0">
+            <AccountNav isLoggedIn={isLoggedIn} />
+            <ThemeToggle />
+          </div>
         </div>
-        <div className="flex items-center gap-3 shrink-0">
-          <AccountNav isLoggedIn={isLoggedIn} />
-          <ThemeToggle />
-        </div>
+        <p className="text-slate-600 dark:text-slate-400 text-sm sm:text-base">
+          Holiday clubs, camps and drop-in activities for ages 4–16, curated from council,
+          museum and local organiser listings across London.
+        </p>
       </header>
 
       <FilterPanel
