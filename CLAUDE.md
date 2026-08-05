@@ -118,9 +118,12 @@ accounts.
   whose `endDate` is in the past (expired listings never show, independent of any date
   filter passed in — see `where.AND` in that file); `POST` requires any authenticated actor
   (admin or user, via `resolveActor`), not admin-only.
-- `public/illustrations/kids-playing.svg` — unDraw "Children" illustration, recolored to
-  the site's teal accent and given a low opacity, used as a fixed background image
-  (wired in `src/app/globals.css`).
+- `public/images/family-outdoors.jpg` — free-license Unsplash photo (father carrying
+  daughter on his shoulders, woodland), used as a low-opacity, edge-masked fixed
+  background accent in the bottom-right corner (wired in `src/app/globals.css` via
+  `body::before`, not `body`'s own `background-image`, so `opacity`/`mask-image` apply
+  only to the photo and not to page text). Replaced an earlier unDraw cartoon
+  illustration that read as too childish for the site's tone.
 - `src/app/account/*` — password-gated-per-user console (signup/login/dashboard/new/edit)
   so regular visitors can submit and manage their own listings; publishes immediately, no
   admin approval queue. See "Two parallel auth systems" above.

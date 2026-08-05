@@ -21,11 +21,30 @@
 
 body {
   background-color: var(--background);
-  background-image: url("/illustrations/kids-playing.svg");
-  background-repeat: no-repeat;
-  background-position: bottom -20px right -40px;
-  background-size: min(480px, 60vw) auto;
-  background-attachment: fixed;
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+/* Subtle family-photo accent in the bottom-right corner, faded into the page
+   background via a mask (a flat CSS `opacity` would just look muddy on a
+   photo, unlike on the old flat-colour SVG it replaces) rather than a hard
+   image edge. A pseudo-element (not body's own background-image) so opacity/
+   mask apply only to the photo, not to body's text content. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image: url("/images/family-outdoors.jpg");
+  background-repeat: no-repeat;
+  background-position: bottom -20px right -40px;
+  background-size: min(520px, 65vw) auto;
+  opacity: 0.16;
+  mask-image: linear-gradient(to top left, black, transparent 75%);
+  -webkit-mask-image: linear-gradient(to top left, black, transparent 75%);
+}
+
+.dark body::before {
+  opacity: 0.12;
+  filter: grayscale(0.4) brightness(0.7);
 }
