@@ -5,7 +5,6 @@ import dynamic from "next/dynamic";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ActivityCard } from "@/components/ActivityCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
-import { CategoryNav } from "@/components/CategoryNav";
 import { AccountNav } from "@/components/AccountNav";
 import type { Activity, ActivityFilters } from "@/types/activity";
 import { haversineKm } from "@/lib/distance";
@@ -320,12 +319,6 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
           <ThemeToggle />
         </div>
       </header>
-
-      <CategoryNav
-        categories={meta?.categoryCounts ?? []}
-        selected={filters.category}
-        onSelect={(category) => setFilters({ ...filters, category })}
-      />
 
       <FilterPanel
         filters={filters}
