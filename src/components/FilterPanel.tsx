@@ -162,7 +162,7 @@ export function FilterPanel({
 
   return (
     <div className="rounded-2xl border-2 border-violet-200 dark:border-violet-800/60 bg-gradient-to-br from-violet-50 via-sky-50 to-teal-50 dark:from-slate-800 dark:via-slate-800 dark:to-slate-800 p-2 sm:p-3 shadow-sm space-y-2">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-center justify-between gap-2 -mx-2 sm:-mx-3 px-1">
         <button
           type="button"
           onClick={() => setCollapsed((v) => !v)}

@@ -304,7 +304,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex flex-col gap-6">
-      <header className="flex items-start justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="space-y-1 flex-1 min-w-0">
           <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
             London Kids Activities
