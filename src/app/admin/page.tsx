@@ -1,8 +1,7 @@
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { formatDateRange, formatPrice } from "@/lib/format";
-import { DeleteActivityButton } from "@/components/admin/DeleteActivityButton";
-import { PublishActivityButton } from "@/components/admin/PublishActivityButton";
+import { AdminActivitiesTable, type AdminActivityRow } from "@/components/admin/AdminActivitiesTable";
 import { LogoutButton } from "@/components/admin/LogoutButton";
 import type { ActivityStatus } from "@/types/activity";
 
@@ -21,12 +20,6 @@ const ORDER_BY_FIELD: Record<SortKey, string> = {
 
 const STATUS_TABS = ["all", "published", "draft", "expired"] as const;
 type StatusTab = (typeof STATUS_TABS)[number];
-
-const STATUS_BADGE: Record<ActivityStatus, string> = {
-  published: "bg-emerald-100 text-emerald-800",
-  draft: "bg-slate-200 text-slate-700",
-  expired: "bg-red-100 text-red-700",
-};
 
 type Props = {
   searchParams: Promise<{ sort?: string; dir?: string; status?: string }>;
@@ -52,25 +45,24 @@ export default async function AdminPage({ searchParams }: Props) {
   const countByStatus = new Map(statusCounts.map((s) => [s.status, s._count]));
   const totalCount = statusCounts.reduce((sum, s) => sum + s._count, 0);
 
+  const rows: AdminActivityRow[] = activities.map((activity) => ({
+    id: activity.id,
+    title: activity.title,
+    featured: activity.featured,
+    status: activity.status as ActivityStatus,
+    dateRange: formatDateRange(activity.startDate.toISOString(), activity.endDate.toISOString()),
+    price: formatPrice(activity),
+    category: activity.category,
+    venue: activity.venue,
+    borough: activity.borough,
+    ageMin: activity.ageMin,
+    ageMax: activity.ageMax,
+  }));
+
   function statusHref(tab: StatusTab) {
     const qs = new URLSearchParams({ sort, dir });
     if (tab !== "all") qs.set("status", tab);
     return `/admin?${qs.toString()}`;
-  }
-
-  function sortHeader(key: SortKey, label: string) {
-    const nextDir: SortDir = sort === key && dir === "asc" ? "desc" : "asc";
-    return (
-      <Link
-        href={`/admin?sort=${key}&dir=${nextDir}`}
-        className="flex items-center gap-1 hover:text-teal-700"
-      >
-        {label}
-        {sort === key && (
-          <span className="text-teal-600">{dir === "asc" ? "▲" : "▼"}</span>
-        )}
-      </Link>
-    );
   }
 
   return (
@@ -107,72 +99,7 @@ export default async function AdminPage({ searchParams }: Props) {
         ))}
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        {activities.length === 0 ? (
-          <p className="p-6 text-sm text-slate-400 text-center">No activities yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-100 text-left text-xs font-semibold text-slate-500 uppercase tracking-wide">
-                  <th className="px-4 py-3 font-semibold">{sortHeader("name", "Name")}</th>
-                  <th className="px-4 py-3 font-semibold">{sortHeader("date", "Date")}</th>
-                  <th className="px-4 py-3 font-semibold">{sortHeader("price", "Price")}</th>
-                  <th className="px-4 py-3 font-semibold">{sortHeader("subjects", "Subjects")}</th>
-                  <th className="px-4 py-3 text-right font-semibold">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {activities.map((activity) => (
-                  <tr key={activity.id} className="hover:bg-slate-50">
-                    <td className="px-4 py-3 min-w-0 max-w-xs">
-                      <p className="font-medium text-slate-900 truncate flex items-center gap-2">
-                        {activity.featured && (
-                          <span className="shrink-0 text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
-                            ★
-                          </span>
-                        )}
-                        {activity.status !== "published" && (
-                          <span
-                            className={`shrink-0 text-xs font-medium px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[activity.status as ActivityStatus]}`}
-                          >
-                            {activity.status}
-                          </span>
-                        )}
-                        <span className="truncate">{activity.title}</span>
-                      </p>
-                      <p className="text-xs text-slate-500 mt-0.5 truncate">
-                        {activity.venue}, {activity.borough} · Ages {activity.ageMin}–{activity.ageMax}
-                      </p>
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {formatDateRange(activity.startDate.toISOString(), activity.endDate.toISOString())}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {formatPrice(activity)}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-slate-600">
-                      {activity.category}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-3">
-                        <PublishActivityButton id={activity.id} status={activity.status as ActivityStatus} />
-                        <Link
-                          href={`/admin/${activity.id}`}
-                          className="text-sm text-teal-700 hover:text-teal-900 font-medium"
-                        >
-                          Edit
-                        </Link>
-                        <DeleteActivityButton id={activity.id} title={activity.title} />
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      <AdminActivitiesTable rows={rows} sort={sort} dir={dir} />
     </div>
   );
 }
