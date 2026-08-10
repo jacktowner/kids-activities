@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { SiteFooter } from "@/components/SiteFooter";
 import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
@@ -48,6 +49,7 @@ export default function RootLayout({
           {THEME_INIT_SCRIPT}
         </Script>
         {children}
+        <SiteFooter />
       </body>
     </html>
   );
