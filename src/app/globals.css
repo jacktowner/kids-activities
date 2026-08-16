@@ -48,13 +48,21 @@ body {
   background-image: url("/images/family-outdoors.jpg");
   background-repeat: no-repeat;
   background-position: bottom right;
-  background-size: min(480px, 70vw) auto;
-  opacity: 0.35;
-  mask-image: linear-gradient(to top left, black, transparent 80%);
-  -webkit-mask-image: linear-gradient(to top left, black, transparent 80%);
+  background-size: min(600px, 90vw) auto;
+  opacity: 0.22;
+  mask-image: radial-gradient(
+    ellipse 480px 380px at bottom right,
+    black,
+    transparent 70%
+  );
+  -webkit-mask-image: radial-gradient(
+    ellipse 480px 380px at bottom right,
+    black,
+    transparent 70%
+  );
 }
 
 .dark .site-footer-accent::before {
-  opacity: 0.25;
+  opacity: 0.14;
   filter: grayscale(0.4) brightness(0.7);
 }
