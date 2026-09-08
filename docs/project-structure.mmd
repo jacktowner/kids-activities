@@ -1,0 +1,78 @@
+flowchart TD
+    subgraph people [People]
+        visitor[Parent / visitor]
+        user[Registered user]
+        admin[Admin]
+    end
+
+    subgraph ui [Pages & UI - Next.js App Router]
+        explore["/ - ExplorePage<br/>FilterPanel · ActivityCard · ActivityMap"]
+        detail["/activity/[id] - detail page + map"]
+        accountUI["/account/* - signup / login / my listings<br/>ActivityForm (no featured, no status)"]
+        adminUI["/admin/* - listings table, create/edit,<br/>publish, bulk delete"]
+        apidocs["/api-docs - public API reference"]
+    end
+
+    subgraph gate [Request gating]
+        proxy["src/proxy.ts<br/>cookie check for /admin & /account"]
+        actor["resolveActor()<br/>admin / user / none"]
+    end
+
+    subgraph api [API routes]
+        pubGet["GET /api/activities<br/>published + not-expired only"]
+        v1["GET /api/v1/activities<br/>read-only public dataset"]
+        mut["POST/PATCH/DELETE /api/activities<br/>+ /status, /geocode, /admin/upload"]
+        authApi["/api/admin/* · /api/account/*<br/>login / logout / signup"]
+    end
+
+    subgraph core [Core libs]
+        adminAuth["auth.ts - shared ADMIN_PASSWORD<br/>cookie admin_session"]
+        userAuth["user-auth.ts - per-user accounts<br/>scrypt + Session table"]
+        prismaLib["src/lib/prisma.ts<br/>Prisma 7 + Neon adapter"]
+    end
+
+    subgraph data [Database - Neon Postgres]
+        activity[(Activity)]
+        userTbl[(User)]
+        session[(Session)]
+    end
+
+    subgraph jobs [Background jobs - system crontab]
+        refresh["refresh-activities-gemini.ts (daily)<br/>fetch sources → Gemini extract → insert as draft<br/>expire past listings"]
+        discover["discover-sources-gemini.ts (weekly)<br/>suggest + verify new source URLs"]
+        sources["scripts/gemini-sources.json"]
+    end
+
+    visitor --> explore
+    visitor --> detail
+    visitor --> apidocs
+    user --> accountUI
+    admin --> adminUI
+
+    explore --> pubGet
+    detail --> pubGet
+    apidocs --> v1
+    accountUI --> mut
+    adminUI --> mut
+    accountUI --> authApi
+    adminUI --> authApi
+
+    adminUI --> proxy
+    accountUI --> proxy
+    mut --> actor
+    actor --> adminAuth
+    actor --> userAuth
+
+    pubGet --> prismaLib
+    v1 --> prismaLib
+    mut --> prismaLib
+    authApi --> userAuth
+    authApi --> adminAuth
+    userAuth --> prismaLib
+    prismaLib --> activity
+    prismaLib --> userTbl
+    prismaLib --> session
+
+    discover --> sources
+    sources --> refresh
+    refresh --> activity
