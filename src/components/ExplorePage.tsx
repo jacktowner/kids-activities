@@ -45,33 +45,60 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: "distance", label: "Distance" },
 ];
 
+// Small seeded PRNG so a given shuffle seed produces the same order on every
+// render (a bare Math.random() shuffle would reshuffle the list on each render).
+function mulberry32(seed: number) {
+  return function () {
+    seed = (seed + 0x6d2b79f5) | 0;
+    let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function seededShuffle<T>(items: T[], seed: number): T[] {
+  const rng = mulberry32(seed);
+  const arr = [...items];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 function sortActivities(
   activities: Activity[],
   sortKey: SortKey,
   sortDir: SortDir,
-  userLocation: UserLocation | null
+  userLocation: UserLocation | null,
+  shuffleSeed: number | null
 ) {
-  const sorted = [...activities].sort((a, b) => {
-    switch (sortKey) {
-      case "name":
-        return a.title.localeCompare(b.title);
-      case "date":
-        return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
-      case "price":
-        return (a.isFree ? 0 : a.priceMin) - (b.isFree ? 0 : b.priceMin);
-      case "subjects":
-        return a.category.localeCompare(b.category);
-      case "borough":
-        return a.borough.localeCompare(b.borough);
-      case "distance":
-        if (!userLocation) return 0;
-        return haversineKm(userLocation, a) - haversineKm(userLocation, b);
-    }
-  });
-  const withDir = sortDir === "desc" ? sorted.reverse() : sorted;
-  // Featured activities always lead the list, regardless of sort — sort is stable
-  // within each group so the chosen order still applies inside it.
-  return [...withDir.filter((a) => a.featured), ...withDir.filter((a) => !a.featured)];
+  let ordered: Activity[];
+  if (shuffleSeed !== null) {
+    ordered = seededShuffle(activities, shuffleSeed);
+  } else {
+    const sorted = [...activities].sort((a, b) => {
+      switch (sortKey) {
+        case "name":
+          return a.title.localeCompare(b.title);
+        case "date":
+          return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+        case "price":
+          return (a.isFree ? 0 : a.priceMin) - (b.isFree ? 0 : b.priceMin);
+        case "subjects":
+          return a.category.localeCompare(b.category);
+        case "borough":
+          return a.borough.localeCompare(b.borough);
+        case "distance":
+          if (!userLocation) return 0;
+          return haversineKm(userLocation, a) - haversineKm(userLocation, b);
+      }
+    });
+    ordered = sortDir === "desc" ? sorted.reverse() : sorted;
+  }
+  // Featured activities always lead the list, regardless of sort/shuffle — order
+  // is stable within each group so the chosen order still applies inside it.
+  return [...ordered.filter((a) => a.featured), ...ordered.filter((a) => !a.featured)];
 }
 
 const PAGE_SIZE = 12;
@@ -214,6 +241,9 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [view, setView] = useState<"list" | "map">("list");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  // Non-null when the user has hit "Randomise" — holds the seed for the shuffle
+  // (see seededShuffle). Any real sort choice clears it back to null.
+  const [shuffleSeed, setShuffleSeed] = useState<number | null>(null);
   // Cards default to compact below the lg breakpoint and expanded at/above it.
   // densityChoice stays null until the user taps the (mobile-only) density
   // toggle; while null, `density` follows the viewport via `isNarrow` below.
@@ -230,11 +260,13 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
     setUserLocation(location);
     setSortKey("distance");
     setSortDir("asc");
+    setShuffleSeed(null);
   }
 
   function handleClearLocation() {
     setUserLocation(null);
     setSortKey("date");
+    setShuffleSeed(null);
   }
 
   // Track the sub-lg breakpoint so the card-density default follows the viewport
@@ -305,8 +337,8 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   );
 
   const sortedActivities = useMemo(
-    () => sortActivities(activities, sortKey, sortDir, userLocation),
-    [activities, sortKey, sortDir, userLocation]
+    () => sortActivities(activities, sortKey, sortDir, userLocation, shuffleSeed),
+    [activities, sortKey, sortDir, userLocation, shuffleSeed]
   );
 
   function handleSelectFromList(id: string) {
@@ -431,10 +463,18 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
           </label>
           <select
             id="sort-by"
-            value={sortKey}
-            onChange={(e) => setSortKey(e.target.value as SortKey)}
+            value={shuffleSeed !== null ? "" : sortKey}
+            onChange={(e) => {
+              setShuffleSeed(null);
+              setSortKey(e.target.value as SortKey);
+            }}
             className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1"
           >
+            {shuffleSeed !== null && (
+              <option value="" disabled>
+                Random
+              </option>
+            )}
             {SORT_OPTIONS.filter((opt) => opt.key !== "distance" || userLocation).map((opt) => (
               <option key={opt.key} value={opt.key}>
                 {opt.label}
@@ -443,12 +483,28 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
           </select>
           <button
             type="button"
-            onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+            onClick={() => {
+              setShuffleSeed(null);
+              setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+            }}
             aria-label={sortDir === "asc" ? "Sort ascending" : "Sort descending"}
             title={sortDir === "asc" ? "Ascending" : "Descending"}
             className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-teal-700 dark:hover:text-teal-400 px-2 py-1"
           >
             {sortDir === "asc" ? "▲" : "▼"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShuffleSeed(Date.now())}
+            aria-label="Randomise the order"
+            title="Randomise the order"
+            className={`rounded-lg border px-2 py-1 ${
+              shuffleSeed !== null
+                ? "border-teal-500 bg-teal-600 text-white"
+                : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-teal-700 dark:hover:text-teal-400"
+            }`}
+          >
+            🔀
           </button>
         </div>
       </div>
@@ -462,7 +518,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
       >
         <div className="w-full lg:w-[var(--list-w)] lg:shrink-0 lg:min-w-0">
           <ActivityListPanel
-            key={`${buildQuery(filters)}|${sortKey}|${sortDir}`}
+            key={`${buildQuery(filters)}|${sortKey}|${sortDir}|${shuffleSeed ?? ""}`}
             activities={sortedActivities}
             loading={loading}
             activeId={activeId}
