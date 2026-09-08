@@ -322,8 +322,8 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 w-full flex-1 flex flex-col gap-6">
       <header className="space-y-1">
-        <div className="flex items-start justify-between gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
+        <div className="flex items-start justify-between gap-3 sm:gap-4">
+          <h1 className="min-w-0 text-2xl sm:text-3xl font-bold text-slate-900 dark:text-slate-50">
             London Kids Activities
           </h1>
           <div className="flex items-center gap-3 shrink-0">
