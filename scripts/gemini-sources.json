@@ -153,5 +153,45 @@
     "name": "Little Angel Theatre",
     "url": "https://www.littleangeltheatre.com/whats-on/",
     "addedAt": "2026-08-04"
+  },
+  {
+    "name": "Polka Theatre",
+    "url": "https://polkatheatre.com/whats-on/",
+    "addedAt": "2026-08-10"
+  },
+  {
+    "name": "Chiswick House & Gardens",
+    "url": "https://chiswickhouseandgardens.org.uk/whats-on/",
+    "addedAt": "2026-08-10"
+  },
+  {
+    "name": "Museum of London Docklands",
+    "url": "https://www.museumoflondon.org.uk/museum-london-docklands/whats-on",
+    "addedAt": "2026-08-10"
+  },
+  {
+    "name": "London Museum of Water & Steam",
+    "url": "https://waterandsteam.org.uk/whats-on/",
+    "addedAt": "2026-09-07"
+  },
+  {
+    "name": "Valence House Museum",
+    "url": "https://valencehousecollections.co.uk/events/",
+    "addedAt": "2026-09-07"
+  },
+  {
+    "name": "Half Moon Theatre",
+    "url": "https://www.halfmoon.org.uk/whats-on/",
+    "addedAt": "2026-09-07"
+  },
+  {
+    "name": "Morden Hall Park",
+    "url": "https://www.nationaltrust.org.uk/visit/london/morden-hall-park/events",
+    "addedAt": "2026-09-07"
+  },
+  {
+    "name": "Discover Hillingdon",
+    "url": "https://discover.hillingdon.gov.uk/events",
+    "addedAt": "2026-09-07"
   }
 ]
