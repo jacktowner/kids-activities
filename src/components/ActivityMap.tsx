@@ -30,6 +30,14 @@ const activeIcon = L.icon({
 
 const SOUTH_LONDON_CENTER: [number, number] = [51.435, -0.11];
 
+// Floor for the auto-fit zoom below. With the dataset now spanning all of Greater
+// London (not just South London), fitBounds on the full unfiltered activity list
+// pulls in markers as far out as Watford and Sevenoaks, computing a zoom loose
+// enough to show open countryside beyond the city rather than London itself. This
+// keeps the default view at city scale; a handful of outlier markers just won't
+// all be on-screen without the user zooming out manually.
+const MIN_AUTO_FIT_ZOOM = 11;
+
 function FitBounds({ activities }: { activities: Activity[] }) {
   const map = useMap();
 
@@ -39,7 +47,11 @@ function FitBounds({ activities }: { activities: Activity[] }) {
     // the mobile List/Map toggle) — MapVisibilityFix re-fits once it becomes visible.
     if (map.getContainer().offsetWidth === 0) return;
     const bounds = L.latLngBounds(activities.map((a) => [a.lat, a.lng] as [number, number]));
-    map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+    // fitBounds only has a ceiling (maxZoom), no floor — replicate it manually via
+    // setView so a wide-spread result set can't push the view out past London.
+    const idealZoom = map.getBoundsZoom(bounds, false, L.point(40, 40));
+    const zoom = Math.min(13, Math.max(MIN_AUTO_FIT_ZOOM, idealZoom));
+    map.setView(bounds.getCenter(), zoom);
   }, [activities, map]);
 
   return null;
