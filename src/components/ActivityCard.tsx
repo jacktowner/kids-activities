@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Activity } from "@/types/activity";
 import { formatDateRange, formatPrice } from "@/lib/format";
 import { parseCategories } from "@/lib/category";
+import { useShortlist } from "@/lib/shortlist";
 
 type Props = {
   activity: Activity;
@@ -15,6 +16,8 @@ type Props = {
 
 export function ActivityCard({ activity, isActive, compact, onHover, onSelect, onCategoryClick }: Props) {
   const [copied, setCopied] = useState(false);
+  const { has, toggle } = useShortlist();
+  const saved = has(activity.id);
   // In compact mode a tap expands this one card in place (and taps back to
   // compact) rather than running onSelect — the primary way a touch user reads a
   // listing without leaving the results. Cards not rendered compact are
@@ -112,7 +115,33 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
         >
           {activity.title}
         </h3>
-        <div className="flex shrink-0 gap-1.5">
+        <div className="flex shrink-0 items-center gap-1.5">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggle(activity.id);
+            }}
+            aria-pressed={saved}
+            aria-label={saved ? "Remove from shortlist" : "Save to shortlist"}
+            title={saved ? "Saved — tap to remove from shortlist" : "Save to shortlist"}
+            className={`transition ${
+              saved
+                ? "text-teal-600 dark:text-teal-400"
+                : "text-slate-300 dark:text-slate-600 hover:text-teal-500 dark:hover:text-teal-400"
+            }`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              width={showCompact ? 15 : 18}
+              height={showCompact ? 15 : 18}
+              fill={saved ? "currentColor" : "none"}
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z" />
+            </svg>
+          </button>
           {activity.featured && (
             <span
               className={`font-medium rounded-full bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 ${

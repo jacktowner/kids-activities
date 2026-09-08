@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { FilterPanel } from "@/components/FilterPanel";
 import { ActivityCard } from "@/components/ActivityCard";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccountNav } from "@/components/AccountNav";
 import type { Activity, ActivityFilters } from "@/types/activity";
 import { haversineKm } from "@/lib/distance";
+import { useShortlist } from "@/lib/shortlist";
 
 export type UserLocation = { lat: number; lng: number; label: string };
 
@@ -222,6 +224,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [isDragging, setIsDragging] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const panelsRef = useRef<HTMLDivElement | null>(null);
+  const { count: shortlistCount } = useShortlist();
 
   function handleSetLocation(location: UserLocation) {
     setUserLocation(location);
@@ -327,6 +330,28 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
             London Kids Activities
           </h1>
           <div className="flex items-center gap-3 shrink-0">
+            <Link
+              href="/shortlist"
+              title="View your shortlist"
+              className="inline-flex items-center gap-1 text-sm font-medium text-slate-600 dark:text-slate-300 hover:text-teal-700 dark:hover:text-teal-400"
+            >
+              <svg
+                viewBox="0 0 24 24"
+                width="16"
+                height="16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M6 4h12a1 1 0 0 1 1 1v15l-7-4-7 4V5a1 1 0 0 1 1-1z" />
+              </svg>
+              <span className="hidden sm:inline">Shortlist</span>
+              {shortlistCount > 0 && (
+                <span className="rounded-full bg-teal-600 text-white text-xs font-semibold px-1.5 min-w-[1.25rem] text-center">
+                  {shortlistCount}
+                </span>
+              )}
+            </Link>
             <AccountNav isLoggedIn={isLoggedIn} />
             <ThemeToggle />
           </div>

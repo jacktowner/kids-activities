@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { formatDateRange, formatPrice } from "@/lib/format";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { ActivityDetailMap } from "@/components/ActivityDetailMap";
+import { SaveButton } from "@/components/SaveButton";
 import type { Activity, ActivityStatus } from "@/types/activity";
 import { parseCategories } from "@/lib/category";
 
@@ -92,6 +93,8 @@ export default async function ActivityDetailPage({ params }: Props) {
               </span>
             ))}
           </div>
+
+          <SaveButton id={activity.id} />
 
           <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
             {activity.description}
