@@ -15,6 +15,20 @@ type Props = {
 
 export function ActivityCard({ activity, isActive, compact, onHover, onSelect, onCategoryClick }: Props) {
   const [copied, setCopied] = useState(false);
+  // In compact mode a tap expands this one card in place (and taps back to
+  // compact) rather than running onSelect — the primary way a touch user reads a
+  // listing without leaving the results. Cards not rendered compact are
+  // unaffected: their tap still runs onSelect.
+  const [expanded, setExpanded] = useState(false);
+  const showCompact = compact && !expanded;
+
+  function handleCardClick() {
+    if (compact) {
+      setExpanded((v) => !v);
+      return;
+    }
+    onSelect?.(activity.id);
+  }
 
   function copyWithFallback(text: string) {
     const textarea = document.createElement("textarea");
@@ -72,16 +86,16 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
       id={`activity-${activity.id}`}
       onMouseEnter={() => onHover?.(activity.id)}
       onMouseLeave={() => onHover?.(null)}
-      onClick={() => onSelect?.(activity.id)}
+      onClick={handleCardClick}
       className={`bg-white dark:bg-slate-800 rounded-xl border shadow-sm transition cursor-pointer hover:shadow-md hover:border-teal-300 dark:hover:border-teal-600 ${
-        compact ? "p-2.5" : "p-4"
+        showCompact ? "p-2.5" : "p-4"
       } ${
         isActive
           ? "border-teal-500 ring-2 ring-teal-200 dark:ring-teal-800"
           : "border-slate-200 dark:border-slate-700"
       }`}
     >
-      {!compact && activity.imageUrl && (
+      {!showCompact && activity.imageUrl && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={activity.imageUrl}
@@ -93,7 +107,7 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
       <div className="flex items-start justify-between gap-3">
         <h3
           className={`font-semibold text-slate-900 dark:text-slate-50 leading-snug ${
-            compact ? "text-sm line-clamp-1" : ""
+            showCompact ? "text-sm line-clamp-1" : ""
           }`}
         >
           {activity.title}
@@ -102,14 +116,14 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
           {activity.featured && (
             <span
               className={`font-medium rounded-full bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 ${
-                compact ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-1"
+                showCompact ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-1"
               }`}
             >
-              ★{!compact && " Featured"}
+              ★{!showCompact && " Featured"}
             </span>
           )}
           <span
-            className={`font-medium rounded-full ${compact ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-1"} ${
+            className={`font-medium rounded-full ${showCompact ? "text-[10px] px-1.5 py-0.5" : "text-xs px-2 py-1"} ${
               activity.isFree
                 ? "bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200"
                 : "bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200"
@@ -120,7 +134,7 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
         </div>
       </div>
 
-      {!compact && (
+      {!showCompact && (
         <p className="text-sm text-slate-600 dark:text-slate-300 mt-2 line-clamp-3">
           {activity.description}
         </p>
@@ -128,23 +142,23 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
 
       <div
         className={`flex flex-wrap gap-x-4 gap-y-1 text-slate-500 dark:text-slate-400 ${
-          compact ? "mt-1 text-[11px]" : "mt-3 text-xs"
+          showCompact ? "mt-1 text-[11px]" : "mt-3 text-xs"
         }`}
       >
         <span>
           📍 {activity.venue}
-          {!compact && `, ${activity.borough}`}
+          {!showCompact && `, ${activity.borough}`}
         </span>
-        {!compact && (
+        {!showCompact && (
           <span>
             🎂 Ages {activity.ageMin}–{activity.ageMax}
           </span>
         )}
         <span>📅 {formatDateRange(activity.startDate, activity.endDate)}</span>
-        {activity.times && !compact && <span>🕒 {activity.times}</span>}
+        {activity.times && !showCompact && <span>🕒 {activity.times}</span>}
       </div>
 
-      {!compact && (
+      {!showCompact && (
         <div className="mt-1.5 flex flex-wrap gap-1">
           {parseCategories(activity.category).map((category) => (
             <button
@@ -162,7 +176,7 @@ export function ActivityCard({ activity, isActive, compact, onHover, onSelect, o
         </div>
       )}
 
-      {!compact && (
+      {!showCompact && (
         <div className="mt-2 flex items-center justify-between gap-3">
           <Link
             href={`/activity/${activity.id}`}

@@ -212,7 +212,12 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [view, setView] = useState<"list" | "map">("list");
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
-  const [density, setDensity] = useState<"compact" | "expanded">("expanded");
+  // Cards default to compact below the lg breakpoint and expanded at/above it.
+  // densityChoice stays null until the user taps the (mobile-only) density
+  // toggle; while null, `density` follows the viewport via `isNarrow` below.
+  const [densityChoice, setDensityChoice] = useState<"compact" | "expanded" | null>(null);
+  const [isNarrow, setIsNarrow] = useState(false);
+  const density = densityChoice ?? (isNarrow ? "compact" : "expanded");
   const [listWidthPct, setListWidthPct] = useState(66.67);
   const [isDragging, setIsDragging] = useState(false);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -228,6 +233,18 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
     setUserLocation(null);
     setSortKey("date");
   }
+
+  // Track the sub-lg breakpoint so the card-density default follows the viewport
+  // even when it changes after mount (resizing a desktop window down, rotating a
+  // tablet). setState only fires from the deferred sync / the change listener,
+  // never synchronously in the effect body, per react-hooks/set-state-in-effect.
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 1023.98px)");
+    const sync = () => setIsNarrow(mq.matches);
+    Promise.resolve().then(sync);
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
 
   // Drag-to-resize the list/map split (desktop only — the resizer handle below is
   // hidden below the lg breakpoint). Only subscribes to window pointer events while
@@ -357,7 +374,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
 
           <div className="flex rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden w-fit">
             <button
-              onClick={() => setDensity("compact")}
+              onClick={() => setDensityChoice("compact")}
               aria-label="Compact view"
               title="Compact view"
               className={`px-3 py-2 text-sm font-medium ${
@@ -369,7 +386,7 @@ export function ExplorePage({ isLoggedIn }: { isLoggedIn: boolean }) {
               ☰
             </button>
             <button
-              onClick={() => setDensity("expanded")}
+              onClick={() => setDensityChoice("expanded")}
               aria-label="Expanded view"
               title="Expanded view"
               className={`px-3 py-2 text-sm font-medium ${
