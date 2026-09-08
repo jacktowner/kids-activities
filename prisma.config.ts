@@ -9,6 +9,11 @@ export default defineConfig({
     path: "prisma/migrations",
   },
   datasource: {
-    url: process.env["DATABASE_URL"],
+    // Prisma CLI only (migrate/studio/etc.) — the app runtime connects via the
+    // Neon serverless adapter in src/lib/prisma.ts, not this. Prefer a direct
+    // (unpooled) connection here: `prisma migrate deploy` takes a session-level
+    // pg_advisory_lock, which hangs through Neon's PgBouncer pooler (P1002).
+    // DIRECT_URL is the same DB as DATABASE_URL but the host without `-pooler`.
+    url: process.env["DIRECT_URL"] ?? process.env["DATABASE_URL"],
   },
 });

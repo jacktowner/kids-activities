@@ -30,6 +30,12 @@ listings (create/edit/delete, mark as featured).
   `node_modules/.prisma`), imported as `@/generated/prisma/client`.
 - `npm run build` runs `prisma migrate deploy && next build` (not just `next build`) so
   schema migrations apply automatically on every Vercel deploy.
+- `DATABASE_URL` is Neon's **pooled** endpoint (`…-pooler…`). The app runtime uses it via
+  the serverless adapter, but the Prisma **CLI** must not: `prisma migrate deploy` takes a
+  session-level `pg_advisory_lock` that hangs through PgBouncer (`P1002`, "Timed out trying
+  to acquire a postgres advisory lock"). So `prisma.config.ts` points the CLI at
+  `DIRECT_URL` (same DB, host without `-pooler`) when set, falling back to `DATABASE_URL`.
+  `DIRECT_URL` must be set in Vercel's env vars for deploy builds to migrate reliably.
 - Leaflet + react-leaflet for maps, loaded client-side only (`dynamic(..., { ssr: false })`)
   since Leaflet touches `window`.
 - Tailwind CSS v4 (`@tailwindcss/postcss`), dark mode via a `.dark` class toggled by
