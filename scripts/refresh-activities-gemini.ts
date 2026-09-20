@@ -103,21 +103,32 @@ function htmlToText(html: string): string {
     .trim();
 }
 
+const BROWSER_USER_AGENT =
+  "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
+// Some sites' bot-blocking only string-matches the User-Agent header rather than
+// verifying the requester is really Google (e.g. checking the source IP against
+// Google's published crawler ranges) — Science Museum and City Kids Magazine both
+// 403/405 the browser UA above but serve real content to this one. Sites with a
+// stricter check (British Museum, Dulwich Picture Gallery as of this writing) 403
+// this too and stay in the logged-and-skipped bucket below.
+const GOOGLEBOT_USER_AGENT = "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)";
+
 async function fetchPageText(url: string): Promise<string | null> {
-  try {
-    const res = await fetch(url, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36",
-      },
-      signal: AbortSignal.timeout(15000),
-    });
-    if (!res.ok) return null;
-    const html = await res.text();
-    return htmlToText(html).slice(0, 8000);
-  } catch {
-    return null;
+  for (const userAgent of [BROWSER_USER_AGENT, GOOGLEBOT_USER_AGENT]) {
+    try {
+      const res = await fetch(url, {
+        headers: { "User-Agent": userAgent },
+        signal: AbortSignal.timeout(15000),
+      });
+      if (res.ok) {
+        const html = await res.text();
+        return htmlToText(html).slice(0, 8000);
+      }
+    } catch {
+      // try the next User-Agent, or fall through to null below
+    }
   }
+  return null;
 }
 
 function buildPrompt(

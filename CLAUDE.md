@@ -174,9 +174,17 @@ fetching instead of asking Gemini to browse.
   family/event-ish keywords) before appending it to `scripts/gemini-sources.json` — a
   hallucinated or dead URL from Gemini is simply discarded, never trusted. Also defaults to
   dry run; needs `--write`. Capped at 5 new sources/run.
-- Both scripts fetch pages with a browser-like `User-Agent`; some sites (British Museum,
-  Science Museum as of this writing) still 403/block them — treated as an expected,
-  logged-and-skipped source, not an error.
+- Both scripts fetch pages with a browser-like `User-Agent`. `refresh-activities-gemini.ts`'s
+  `fetchPageText` additionally retries a failed fetch once with Googlebot's `User-Agent`
+  string — some sites' bot-blocking only string-matches the header rather than verifying
+  the requester's IP is really Google's crawler, so this recovers a few otherwise-403/405
+  sources (Science Museum, City Kids Magazine as of this writing) at the cost of the
+  script claiming to be a crawler it isn't. Sites with a stricter check (British Museum,
+  Dulwich Picture Gallery as of this writing) 403 that too and stay in the
+  logged-and-skipped bucket — treated as expected, not an error.
+  `discover-sources-gemini.ts`'s `validateCandidate` does not have this fallback, so a
+  new source suggestion that needs it won't get auto-verified/added — add it to
+  `gemini-sources.json` by hand as was done for City Kids Magazine.
 
 ## Activity status: draft / published / expired
 
