@@ -193,5 +193,35 @@
     "name": "Discover Hillingdon",
     "url": "https://discover.hillingdon.gov.uk/events",
     "addedAt": "2026-09-07"
+  },
+  {
+    "name": "Osterley Park and House",
+    "url": "https://www.nationaltrust.org.uk/visit/london/osterley-park-and-house/events",
+    "addedAt": "2026-09-14"
+  },
+  {
+    "name": "Rose Theatre Kingston",
+    "url": "https://rosetheatre.org/whats-on",
+    "addedAt": "2026-09-14"
+  },
+  {
+    "name": "Queen's Theatre Hornchurch",
+    "url": "https://www.queens-theatre.co.uk/whats-on/",
+    "addedAt": "2026-09-14"
+  },
+  {
+    "name": "Idea Store Tower Hamlets",
+    "url": "https://www.ideastore.co.uk/whats-on",
+    "addedAt": "2026-09-14"
+  },
+  {
+    "name": "Down House - Home of Charles Darwin",
+    "url": "https://www.english-heritage.org.uk/visit/places/home-of-charles-darwin-down-house/events/",
+    "addedAt": "2026-09-14"
+  },
+  {
+    "name": "City Kids Magazine",
+    "url": "https://www.citykidsmagazine.co.uk/",
+    "addedAt": "2026-09-20"
   }
 ]
